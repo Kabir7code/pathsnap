@@ -17,14 +17,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 
-def make_model(name, seed=42, **params):
+def make_model(name, seed=42, n_jobs=-1, **params):
+    """n_jobs: threads per model (set to 1 when several models train concurrently)."""
     if name == "logreg":
         return make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000, C=params.get("C", 1.0)))
     if name == "gnb":
         return make_pipeline(StandardScaler(), GaussianNB())
     if name == "knn":
         return make_pipeline(StandardScaler(), KNeighborsClassifier(
-            n_neighbors=params.get("n_neighbors", 25), weights="distance", n_jobs=-1))
+            n_neighbors=params.get("n_neighbors", 25), weights="distance", n_jobs=n_jobs))
     if name == "dtree":
         return DecisionTreeClassifier(max_depth=params.get("max_depth", 12),
                                       min_samples_leaf=params.get("min_samples_leaf", 50), random_state=seed)
@@ -32,12 +33,12 @@ def make_model(name, seed=42, **params):
         return RandomForestClassifier(n_estimators=params.get("n_estimators", 200),
                                       max_depth=params.get("max_depth", 16),
                                       min_samples_leaf=params.get("min_samples_leaf", 20),
-                                      n_jobs=-1, random_state=seed)
+                                      n_jobs=n_jobs, random_state=seed)
     if name == "extratrees":
         return ExtraTreesClassifier(n_estimators=params.get("n_estimators", 200),
                                     max_depth=params.get("max_depth", 18),
                                     min_samples_leaf=params.get("min_samples_leaf", 20),
-                                    n_jobs=-1, random_state=seed)
+                                    n_jobs=n_jobs, random_state=seed)
     if name == "histgb":
         return HistGradientBoostingClassifier(max_iter=params.get("max_iter", 300),
                                               learning_rate=params.get("learning_rate", 0.1),
@@ -46,7 +47,7 @@ def make_model(name, seed=42, **params):
         defaults = dict(n_estimators=400, learning_rate=0.05, num_leaves=63, min_child_samples=50,
                         subsample=0.8, subsample_freq=1, colsample_bytree=0.8, reg_lambda=1.0)
         defaults.update(params)
-        return LGBMClassifier(random_state=seed, n_jobs=-1, verbose=-1, **defaults)
+        return LGBMClassifier(random_state=seed, n_jobs=n_jobs, verbose=-1, **defaults)
     if name == "mlp":
         return make_pipeline(StandardScaler(), MLPClassifier(
             hidden_layer_sizes=params.get("hidden", (64, 32)), alpha=params.get("alpha", 1e-4),
