@@ -1,0 +1,7 @@
+{
+ "beta": 1.2783112279663746,
+ "emission_weight": 2.6225979199055103,
+ "dijkstra_cutoff": 1500.0,
+ "unreachable_logp": -43.25243870138592,
+ "backward_tolerance": 15.0
+}
