@@ -33,6 +33,11 @@ scripts/
   04_hmm_eval.py         decoder tuning + classifier vs classifier+HMM -> results/hmm_*.csv
   05_folium_maps.py      interactive maps -> maps/*.html
   06_plots.py            comparison plots -> results/plots/
+  07_model_cards.py      open every saved model, summarise it -> results/model_cards.md
+  08_models_dashboard.py one-page HTML of all models -> results/models_dashboard.html
+  09_hmm_top3.py         classifier vs classifier+HMM for the top-3 models -> results/hmm_top3.csv
+  make_notebooks.py      regenerates notebooks/*.ipynb
+notebooks/           8 executed Jupyter notebooks (EDA, every model family, Bayesian opt., HMM) - Colab-ready
 api/server.py        FastAPI backend (laptop 1)
 ui/index.html        evaluator UI (laptop 2)
 artifacts/           trained models, final config, HMM parameters
@@ -62,7 +67,17 @@ python scripts/03_bayes_opt.py --model lightgbm --trials 30
 python scripts/04_hmm_eval.py --trials 25
 python scripts/05_folium_maps.py --split student_test
 python scripts/06_plots.py
+python scripts/07_model_cards.py
+python scripts/08_models_dashboard.py
+python scripts/09_hmm_top3.py
 ```
+
+### Notebooks
+The same experiments, with explanations and plots, are in `notebooks/`. They're saved **with outputs**, so you can read them without running anything.
+- **Laptop A** runs 01–04.
+- **Laptop B** runs 05–08.
+
+Each notebook runs on its own: `jupyter notebook notebooks/`, then Kernel → Restart & Run All. Each one also opens in **Google Colab** via the badge at its top. See `notebooks/README.md` for the Colab links and what each notebook contains.
 
 Every script fixes its random seed from `pathsnap/config.py` (`seed = 42`). Steps 02–04 are the slow ones, taking minutes to tens of minutes on a 4-core laptop.
 
@@ -106,3 +121,30 @@ Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, 
 - **Problem framing.** Each row is one (GPS point, candidate arc) pair with a binary label. The top-scoring candidate is the classifier-only prediction, and the probabilities feed the HMM.
 - **Validation.** `GroupKFold` by trip, so points from one trip never appear in both the fitting and the validation part of a fold. The student-test trips are used only for comparison, never for fitting.
 - **Decoder tuning.** Decoder parameters are tuned on **out-of-fold** probabilities from the training trips.
+
+## Where each required deliverable is (Deliverables PDF, section 1)
+
+| Required component | Location |
+|---|---|
+| Data processing | `pathsnap/data.py`, `labels.py`, `candidates.py`, `scripts/00_eda.py`, `scripts/01_build_dataset.py`, `notebooks/01_*` |
+| Feature engineering | `pathsnap/features.py` (14 features, documented in the module docstring) |
+| Model training: every model | `pathsnap/models.py`, `scripts/02_train_models.py`, `scripts/02b_train_concurrent.py`, `notebooks/02_*` to `06_*` |
+| Model evaluation: metrics, plots, confusion matrices | `pathsnap/metrics.py`, `pathsnap/experiment.py`, `scripts/06_plots.py`, `results/plots/`, `results/model_comparison.csv`, `results/concurrent/` |
+| Hyperparameter optimisation: code, search config, results | `scripts/03_bayes_opt.py`, `notebooks/07_*`, `results/optuna_lightgbm.db`, `results/optuna_trials_lightgbm.csv`, `results/tuned_vs_untuned.csv`, `results/optuna_hmm.db` |
+| HMM and Viterbi | `pathsnap/hmm.py`, `pathsnap/pipeline.py`, `scripts/04_hmm_eval.py`, `scripts/09_hmm_top3.py`, `notebooks/08_*`, `results/hmm_*.csv` |
+| API | `api/server.py` (endpoints `/health`, `/info`, `/trips`, `/predict`) |
+| UI | `ui/index.html` (+ `ui/vendor/leaflet/`) |
+| Deployment: config, dependencies, instructions | `requirements.txt`, `pathsnap/config.py`, "Running the demo" above |
+| Saved model weights and configuration | `artifacts/models/*.joblib` (9 models + `final.joblib`), `artifacts/final_model.json`, `artifacts/hmm_params.json` |
+| Visualisations: Folium and plots | `pathsnap/viz.py`, `scripts/05_folium_maps.py`, `maps/*.html`, `results/eda/`, `results/plots/` |
+| Supporting results: CSVs, logs, configs | `results/` (CSVs, JSON, Optuna studies, `*_log.txt`, `api_test_log.txt`, UI screenshots), `results/model_cards.md`, `results/models_dashboard.html` |
+
+**Not in the repo, by design:**
+- the raw dataset (`data/`)
+- the evaluator trips (`eval_data/`)
+- the generated feature tables (`artifacts/*.parquet`; rebuild them with `scripts/01_build_dataset.py`)
+
+The **technical report (PDF)** is submitted separately. Every number in it can be traced to a file in `results/`.
+
+## AI assistance
+Parts of this repository's code were written with the help of an AI assistant (Claude). The experiments were run, and the results recorded, by the scripts and notebooks in this repository.
