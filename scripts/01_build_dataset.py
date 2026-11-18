@@ -1,8 +1,8 @@
 """Build the candidate feature tables for the train and student_test splits.
 
 Outputs:
-  artifacts/features_<split>.parquet   one row per (GPS point, candidate arc)
-  results/labelling_<split>.csv        per-trip label coverage & candidate miss rate
+  data/features/features_<split>.parquet   one row per (GPS point, candidate arc)
+  results/01_eda_preprocessing/labelling_<split>.csv        per-trip label coverage & candidate miss rate
 """
 import argparse
 import os
@@ -23,7 +23,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--splits", nargs="+", default=["train", "student_test"])
     args = ap.parse_args()
-    os.makedirs("artifacts", exist_ok=True); os.makedirs("results", exist_ok=True)
+    os.makedirs("data/features", exist_ok=True); os.makedirs("results/01_eda_preprocessing", exist_ok=True)
     for split in args.splits:
         frames, stats, pts = [], [], []
         for tid in list_trips(os.path.join(CFG["data_dir"], split)):
@@ -41,9 +41,9 @@ def main():
             pts.append(pd.DataFrame({"trip": tid, "point": np.arange(len(true_arc)), "true_arc": true_arc,
                                      "n_cands": [len(c) for c in cands]}))
             print(split, stats[-1])
-        pd.concat(frames, ignore_index=True).to_parquet(f"artifacts/features_{split}.parquet")
-        pd.concat(pts, ignore_index=True).to_parquet(f"artifacts/points_{split}.parquet")
-        pd.DataFrame(stats).to_csv(f"results/labelling_{split}.csv", index=False)
+        pd.concat(frames, ignore_index=True).to_parquet(f"data/features/features_{split}.parquet")
+        pd.concat(pts, ignore_index=True).to_parquet(f"data/features/points_{split}.parquet")
+        pd.DataFrame(stats).to_csv(f"results/01_eda_preprocessing/labelling_{split}.csv", index=False)
 
 
 if __name__ == "__main__":

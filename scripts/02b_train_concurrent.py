@@ -6,7 +6,7 @@ protocol is identical to scripts/02_train_models.py (5-fold GroupKFold CV
 on train trips + refit and evaluation on the student-test trips), so the
 metrics are directly comparable.
 
-Outputs (results/concurrent/):
+Outputs (results/03_concurrent_training/):
   model_runs.json        per-model CV folds + student-test metrics + timings
   model_comparison.csv   summary table
   timeline.csv / timeline.png   start/end of every model (shows the overlap)
@@ -27,7 +27,7 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-OUT = os.path.join(ROOT, "results", "concurrent")
+OUT = os.path.join(ROOT, "results", "03_concurrent_training")
 ALL = ["logreg", "gnb", "knn", "dtree", "rf", "extratrees", "histgb", "lightgbm", "mlp"]
 MAX_ROWS = {"knn": 100_000}
 

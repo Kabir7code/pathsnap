@@ -28,11 +28,11 @@ for mod in ["numpy", "pandas", "scipy", "sklearn", "lightgbm", "joblib", "fastap
         check(False, f"{mod}: {e}", "pip install -r requirements.txt")
 
 print("2. Model artifacts")
-for f in ["artifacts/models/final.joblib", "artifacts/final_model.json", "artifacts/hmm_params.json"]:
+for f in ["models/final.joblib", "models/final_model.json", "models/hmm_params.json"]:
     check(os.path.exists(f), f, "git pull (these files are in the repo)")
 try:
     import joblib
-    m = joblib.load("artifacts/models/final.joblib"); check(True, f"final model loads ({type(m).__name__})")
+    m = joblib.load("models/final.joblib"); check(True, f"final model loads ({type(m).__name__})")
 except Exception as e:
     check(False, f"final model failed to load: {e}", "pip install -r requirements.txt (same lightgbm/sklearn)")
 

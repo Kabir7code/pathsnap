@@ -11,39 +11,58 @@ A FastAPI backend (laptop 1) runs the full pipeline for a selected evaluation tr
 ## Repository layout
 
 ```
-pathsnap/            core library (imported by every script, the API and the maps)
-  data.py            raw file loading, cleaning, metric projection
-  geometry.py        point-to-segment distance, angle difference
-  candidates.py      KD-tree candidate generation
-  labels.py          per-GPS-point labels from the .route file (monotonic alignment)
-  features.py        feature engineering for (point, candidate) pairs
-  models.py          model zoo (9 classifiers)
-  experiment.py      shared CV / test protocol
-  hmm.py             road graph, cached Dijkstra, Viterbi, route reconstruction
-  pipeline.py        end-to-end inference for one trip + scoring
-  metrics.py         candidate, observation and sequence-level metrics
-  viz.py             Folium map building
-  config.py          all pipeline settings
-scripts/
-  00_eda.py              dataset exploration -> results/eda/
-  01_build_dataset.py    candidates + features + labels -> artifacts/*.parquet
-  02_train_models.py     train & compare all models -> results/model_comparison.csv
-  02b_train_concurrent.py  same protocol, all 9 models trained concurrently in parallel worker processes -> results/concurrent/
-  03_bayes_opt.py        Optuna TPE search for the chosen model -> artifacts/models/final.joblib
-  04_hmm_eval.py         decoder tuning + classifier vs classifier+HMM -> results/hmm_*.csv
-  05_folium_maps.py      interactive maps -> maps/*.html
-  06_plots.py            comparison plots -> results/plots/
-  07_model_cards.py      open every saved model, summarise it -> results/model_cards.md
-  08_models_dashboard.py one-page HTML of all models -> results/models_dashboard.html
-  09_hmm_top3.py         classifier vs classifier+HMM for the top-3 models -> results/hmm_top3.csv
-  make_notebooks.py      regenerates notebooks/*.ipynb
-notebooks/           8 executed Jupyter notebooks (EDA, every model family, Bayesian opt., HMM) - Colab-ready
-api/server.py        FastAPI backend (laptop 1)
-ui/index.html        evaluator UI (laptop 2)
-artifacts/           trained models, final config, HMM parameters
-results/             experiment logs, CSVs, Optuna studies (.db), plots
-maps/                generated Folium HTML maps
+pathsnap/                  core library (imported by every script, the API and the notebooks)
+  data.py                  raw file loading, cleaning, metric projection
+  geometry.py              point-to-segment distance, angle difference
+  candidates.py            KD-tree candidate generation
+  labels.py                per-GPS-point labels from the .route file (monotonic alignment)
+  features.py              feature engineering for (point, candidate) pairs
+  models.py                model zoo (9 classifiers)
+  dataset.py               loads the feature tables; ART = data/features, MODELS = models
+  experiment.py            shared CV / test protocol
+  hmm.py                   road graph, cached Dijkstra, Viterbi, route reconstruction
+  pipeline.py              end-to-end inference for one trip + scoring
+  metrics.py               candidate, observation and sequence-level metrics
+  viz.py                   Folium map building
+  nb.py                    helpers used by the notebooks
+  config.py                all pipeline settings
+scripts/                   the pipeline, run in numeric order (see "Reproducing the experiments")
+notebooks/                 8 executed Jupyter notebooks (EDA, every model family, Bayesian opt., HMM), Colab-ready
+app/
+  api/server.py            FastAPI backend (laptop 1)
+  ui/index.html            evaluator UI (laptop 2), Leaflet bundled in ui/vendor/
+models/                    trained models: 9 x <name>.joblib, final.joblib (deployed), final_model.json, hmm_params.json
+results/
+  00_overview/             models_dashboard.html (all models on one page), model_cards.md
+  01_eda_preprocessing/    EDA summary, inventory, plots; label coverage (labelling_*.csv); logs
+  02_model_training/       model_comparison.csv, model_runs.json, plots/, notebook_runs/ (per-notebook results)
+  03_concurrent_training/  all 9 models trained in parallel: comparison, timeline, speed-up
+  04_bayesian_optimisation/ Optuna study (.db), trial record, history plot, tuned vs untuned
+  05_hmm_viterbi/          decoder tuning, classifier vs classifier+HMM, top-3 comparison
+  06_folium_maps/          interactive Folium maps (EDA and student-test predictions)
+  07_api_ui/               API end-to-end log, UI screenshots
+report/                    technical report (PDF)
+deploy/                    start_api / start_ui scripts (macOS/Linux .sh, Windows .bat)
+docs/DEPLOYMENT.md         step-by-step two-laptop guide and troubleshooting
+data/                      NOT in git: raw dataset (train/, student_test/) and generated features/
 ```
+
+### Script outputs
+
+| Script | Writes to |
+|---|---|
+| `00_eda.py` | `results/01_eda_preprocessing/` |
+| `01_build_dataset.py` | `data/features/*.parquet`, `results/01_eda_preprocessing/labelling_*.csv` |
+| `02_train_models.py` | `models/<name>.joblib`, `results/02_model_training/` |
+| `02b_train_concurrent.py` | `results/03_concurrent_training/` |
+| `03_bayes_opt.py` | `models/final.joblib`, `models/final_model.json`, `results/04_bayesian_optimisation/` |
+| `04_hmm_eval.py` | `models/hmm_params.json`, `results/05_hmm_viterbi/` |
+| `05_folium_maps.py` | `results/06_folium_maps/` |
+| `06_plots.py` | `results/02_model_training/plots/`, `results/04_bayesian_optimisation/tuned_vs_untuned.png` |
+| `07_model_cards.py`, `08_models_dashboard.py` | `results/00_overview/` |
+| `09_hmm_top3.py` | `results/05_hmm_viterbi/hmm_top3*` |
+| `check_setup.py` | pre-flight check for the demo (prints this laptop's IP) |
+| `make_notebooks.py` | regenerates `notebooks/*.ipynb` |
 
 ## Setup
 
@@ -83,23 +102,21 @@ Every script fixes its random seed from `pathsnap/config.py` (`seed = 42`). Step
 
 ## Running the demo (two laptops)
 
-**Step-by-step guide, troubleshooting and the API reference are in [`DEPLOYMENT.md`](DEPLOYMENT.md).** Quick start: on laptop 1 run `start_api.bat` (Windows) or `./start_api.sh`; on laptop 2 run `start_ui.bat <laptop1-ip>` or `./start_ui.sh <laptop1-ip>`. Check laptop 1 first with `python scripts/check_setup.py`.
+**Step-by-step guide, troubleshooting and the API reference are in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).**
 
-
-**Laptop 1: API.** Put the 10 evaluator trips in a folder, one sub-folder per trip in the raw format (including `.route`), then run:
+**Laptop 1: API.** Run the pre-flight check and start the API (it prints the IP for laptop 2):
 
 ```bash
-PATHSNAP_EVAL_DIR=/path/to/eval_trips uvicorn api.server:app --host 0.0.0.0 --port 8000
+./deploy/start_api.sh               # Windows: deploy\start_api.bat
+./deploy/start_api.sh eval_data     # demo day: the evaluator trips in eval_data/
 ```
 
-On Windows PowerShell, use `$env:PATHSNAP_EVAL_DIR="C:\path\to\eval_trips"; uvicorn api.server:app --host 0.0.0.0 --port 8000`.
-
-If you don't set `PATHSNAP_EVAL_DIR`, it defaults to `data/student_test`. Every request is logged to the console with the trip, its timing and its metrics. Show this console to the evaluator.
+Without the script: `PATHSNAP_EVAL_DIR=/path/to/eval_trips uvicorn app.api.server:app --host 0.0.0.0 --port 8000` from the repository root. If `PATHSNAP_EVAL_DIR` is not set it defaults to `data/student_test`. Every request is logged to this console with the trip, its timing and its metrics: show it to the evaluator.
 
 **Laptop 2: UI.**
 
 ```bash
-cd ui && python -m http.server 8080
+./deploy/start_ui.sh <laptop-1-ip>  # Windows: deploy\start_ui.bat <laptop-1-ip>
 ```
 
 Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, then pick a trip. Both laptops must be on the same network, and laptop 1's firewall must allow port 8000.
@@ -114,7 +131,7 @@ Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, 
 
 ### How the reference labels are kept separate
 
-`/predict` loads the trip with `with_route=False`, so the prediction pipeline (`pathsnap.pipeline.predict_trip`) never sees the `.route` file. The reference route is read only inside `_score()` in `api/server.py`. The response contains only aggregate metrics, never the reference geometry or per-point labels. Nothing is hard-coded: every request recomputes candidates, features, classifier scores and Viterbi decoding.
+`/predict` loads the trip with `with_route=False`, so the prediction pipeline (`pathsnap.pipeline.predict_trip`) never sees the `.route` file. The reference route is read only inside `_score()` in `app/api/server.py`. The response contains only aggregate metrics, never the reference geometry or per-point labels. Nothing is hard-coded: every request recomputes candidates, features, classifier scores and Viterbi decoding.
 
 ## Key design decisions
 
@@ -129,25 +146,26 @@ Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, 
 
 | Required component | Location |
 |---|---|
-| Data processing | `pathsnap/data.py`, `labels.py`, `candidates.py`, `scripts/00_eda.py`, `scripts/01_build_dataset.py`, `notebooks/01_*` |
+| Data processing | `pathsnap/data.py`, `labels.py`, `candidates.py`, `scripts/00_eda.py`, `scripts/01_build_dataset.py`, `notebooks/01_*`, `results/01_eda_preprocessing/` |
 | Feature engineering | `pathsnap/features.py` (14 features, documented in the module docstring) |
 | Model training: every model | `pathsnap/models.py`, `scripts/02_train_models.py`, `scripts/02b_train_concurrent.py`, `notebooks/02_*` to `06_*` |
-| Model evaluation: metrics, plots, confusion matrices | `pathsnap/metrics.py`, `pathsnap/experiment.py`, `scripts/06_plots.py`, `results/plots/`, `results/model_comparison.csv`, `results/concurrent/` |
-| Hyperparameter optimisation: code, search config, results | `scripts/03_bayes_opt.py`, `notebooks/07_*`, `results/optuna_lightgbm.db`, `results/optuna_trials_lightgbm.csv`, `results/tuned_vs_untuned.csv`, `results/optuna_hmm.db` |
-| HMM and Viterbi | `pathsnap/hmm.py`, `pathsnap/pipeline.py`, `scripts/04_hmm_eval.py`, `scripts/09_hmm_top3.py`, `notebooks/08_*`, `results/hmm_*.csv` |
-| API | `api/server.py` (endpoints `/health`, `/info`, `/trips`, `/predict`) |
-| UI | `ui/index.html` (+ `ui/vendor/leaflet/`) |
-| Deployment: config, dependencies, instructions | `requirements.txt`, `pathsnap/config.py`, "Running the demo" above |
-| Saved model weights and configuration | `artifacts/models/*.joblib` (9 models + `final.joblib`), `artifacts/final_model.json`, `artifacts/hmm_params.json` |
-| Visualisations: Folium and plots | `pathsnap/viz.py`, `scripts/05_folium_maps.py`, `maps/*.html`, `results/eda/`, `results/plots/` |
-| Supporting results: CSVs, logs, configs | `results/` (CSVs, JSON, Optuna studies, `*_log.txt`, `api_test_log.txt`, UI screenshots), `results/model_cards.md`, `results/models_dashboard.html` |
+| Model evaluation: metrics, plots, confusion matrices | `pathsnap/metrics.py`, `pathsnap/experiment.py`, `scripts/06_plots.py`, `results/02_model_training/`, `results/03_concurrent_training/` |
+| Hyperparameter optimisation: code, search config, results | `scripts/03_bayes_opt.py`, `notebooks/07_*`, `results/04_bayesian_optimisation/` |
+| HMM and Viterbi | `pathsnap/hmm.py`, `pathsnap/pipeline.py`, `scripts/04_hmm_eval.py`, `scripts/09_hmm_top3.py`, `notebooks/08_*`, `results/05_hmm_viterbi/` |
+| API | `app/api/server.py` (endpoints `/health`, `/info`, `/trips`, `/predict`) |
+| UI | `app/ui/index.html` (+ `app/ui/vendor/leaflet/`) |
+| Deployment: config, dependencies, instructions | `requirements.txt`, `pathsnap/config.py`, `deploy/`, `docs/DEPLOYMENT.md` |
+| Saved model weights and configuration | `models/*.joblib` (9 models + `final.joblib`), `models/final_model.json`, `models/hmm_params.json` |
+| Visualisations: Folium and plots | `pathsnap/viz.py`, `scripts/05_folium_maps.py`, `results/06_folium_maps/`, the `plots/` and `.png` files in each `results/` stage |
+| Supporting results: CSVs, logs, configs | every `results/` stage folder (CSVs, JSON, Optuna studies, `*_log.txt`), `results/07_api_ui/` (API log, UI screenshots), `results/00_overview/` |
+| Technical report | `report/` |
 
 **Not in the repo, by design:**
 - the raw dataset (`data/`)
 - the evaluator trips (`eval_data/`)
-- the generated feature tables (`artifacts/*.parquet`; rebuild them with `scripts/01_build_dataset.py`)
+- the generated feature tables (`data/features/*.parquet`; rebuild them with `scripts/01_build_dataset.py`)
 
-The **technical report (PDF)** is submitted separately. Every number in it can be traced to a file in `results/`.
+Every number in the technical report can be traced to a file in `results/`.
 
 ## AI assistance
 Parts of this repository's code were written with the help of an AI assistant (Claude). The experiments were run, and the results recorded, by the scripts and notebooks in this repository.

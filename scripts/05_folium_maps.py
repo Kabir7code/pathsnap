@@ -2,7 +2,7 @@
 
   python scripts/05_folium_maps.py --split student_test --trips 00000000 00000056
   python scripts/05_folium_maps.py --split train --trips 00000010 --eda   # EDA map, no model
-Maps are written to maps/<split>_<trip>.html
+Maps are written to results/06_folium_maps/<split>_<trip>.html
 """
 import argparse
 import json
@@ -14,7 +14,7 @@ import joblib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pathsnap.config import CFG
 from pathsnap.data import list_trips, load_trip
-from pathsnap.dataset import ART
+from pathsnap.dataset import ART, MODELS
 from pathsnap.labels import align_track_to_route
 from pathsnap.pipeline import predict_trip, score_trip
 from pathsnap.viz import trip_map
@@ -28,10 +28,10 @@ def main():
     args = ap.parse_args()
     sd = os.path.join(CFG["data_dir"], args.split)
     trips = args.trips or list_trips(sd)
-    os.makedirs("maps", exist_ok=True)
+    os.makedirs("results/06_folium_maps", exist_ok=True)
     if not args.eda:
-        model = joblib.load(os.path.join(ART, "models", "final.joblib"))
-        hp = json.load(open(os.path.join(ART, "hmm_params.json")))
+        model = joblib.load(os.path.join(MODELS, "final.joblib"))
+        hp = json.load(open(os.path.join(MODELS, "hmm_params.json")))
     for tid in trips:
         trip = load_trip(sd, tid)
         layers = [("Reference route", trip.route, "#1a9e3a", 7, None)]
@@ -44,7 +44,7 @@ def main():
                        ("Classifier + HMM route", out["route"], "#d62728", 3, None)]
             title += (f" | top-1 cls {s['cls_top1']:.3f} / HMM {s['hmm_top1']:.3f}"
                       f" | route F1 cls {s['cls_route_f1']:.3f} / HMM {s['hmm_route_f1']:.3f}")
-        path = f"maps/{args.split}_{tid}{'_eda' if args.eda else ''}.html"
+        path = f"results/06_folium_maps/{args.split}_{tid}{'_eda' if args.eda else ''}.html"
         trip_map(trip, layers, title).save(path)
         print("wrote", path)
 

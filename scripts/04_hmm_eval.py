@@ -8,8 +8,8 @@
    Objective: mean point-level Top-1 accuracy after decoding.
 3. Student-test comparison per trip: classifier-only vs classifier+HMM
    (default decoder params) vs classifier+HMM (tuned params).
-Outputs: results/hmm_trials.csv, results/hmm_student_test.csv,
-         results/hmm_comparison.png, artifacts/hmm_params.json
+Outputs: results/05_hmm_viterbi/hmm_trials.csv, results/05_hmm_viterbi/hmm_student_test.csv,
+         results/05_hmm_viterbi/hmm_comparison.png, models/hmm_params.json
 """
 import argparse
 import json
@@ -29,7 +29,7 @@ from sklearn.model_selection import GroupKFold
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pathsnap.config import CFG
 from pathsnap.data import load_trip
-from pathsnap.dataset import ART, subsample_points
+from pathsnap.dataset import ART, MODELS, subsample_points
 from pathsnap.features import FEATURES
 from pathsnap.hmm import RoadGraph, reconstruct_route, viterbi
 from pathsnap.labels import align_track_to_route
@@ -74,11 +74,11 @@ def main():
     ap.add_argument("--max_points", type=int, default=5000, help="skip huge train trips during tuning (speed)")
     args = ap.parse_args()
     seed = CFG["seed"]
-    meta = json.load(open(os.path.join(ART, "final_model.json")))
+    meta = json.load(open(os.path.join(MODELS, "final_model.json")))
     model_name, params = meta["model"], meta["params"]
 
     # ---------- 1. OOF probabilities on training trips --------------------
-    lab = pd.read_csv("results/labelling_train.csv", dtype={"trip": str})
+    lab = pd.read_csv("results/01_eda_preprocessing/labelling_train.csv", dtype={"trip": str})
     good = lab[(lab.labelled_frac >= CFG["min_trip_label_frac"]) & (lab.points <= args.max_points)].trip.tolist()
     full = pd.read_parquet(os.path.join(ART, "features_train.parquet"))
     full = full[full.trip.isin(lab[lab.labelled_frac >= CFG["min_trip_label_frac"]].trip)]
@@ -112,18 +112,18 @@ def main():
         return v
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed, n_startup_trials=6),
-                                storage="sqlite:///results/optuna_hmm.db", study_name="pathsnap_hmm", load_if_exists=True)
+                                storage="sqlite:///results/05_hmm_viterbi/optuna_hmm.db", study_name="pathsnap_hmm", load_if_exists=True)
     study.enqueue_trial({k: CFG["hmm"][k] for k in ["beta", "emission_weight", "unreachable_logp"]})
     left = args.trials - len([t for t in study.trials if t.state.is_finished()])
     if left > 0:
         study.optimize(objective, n_trials=left)
-    study.trials_dataframe().to_csv("results/hmm_trials.csv", index=False)
+    study.trials_dataframe().to_csv("results/05_hmm_viterbi/hmm_trials.csv", index=False)
     tuned = dict(CFG["hmm"]); tuned.update(study.best_params)
-    json.dump(tuned, open(os.path.join(ART, "hmm_params.json"), "w"), indent=1)
+    json.dump(tuned, open(os.path.join(MODELS, "hmm_params.json"), "w"), indent=1)
     print("best decoder params", tuned)
 
     # ---------- 3. Student-test comparison --------------------------------
-    model = joblib.load(os.path.join(ART, "models", "final.joblib"))
+    model = joblib.load(os.path.join(MODELS, "final.joblib"))
     te = pd.read_parquet(os.path.join(ART, "features_student_test.parquet"))
     rows = []
     for tid, g in te.groupby("trip"):
@@ -138,9 +138,9 @@ def main():
             rows.append(r)
             print(tid, variant, {k: round(v, 4) for k, v in r.items() if isinstance(v, float)}, flush=True)
     res = pd.DataFrame(rows)
-    res.to_csv("results/hmm_student_test.csv", index=False)
+    res.to_csv("results/05_hmm_viterbi/hmm_student_test.csv", index=False)
     summ = res.groupby("decoder")[[c for c in res if c.startswith(("cls_", "hmm_")) or c == "decode_s"]].mean()
-    summ.to_csv("results/hmm_summary.csv")
+    summ.to_csv("results/05_hmm_viterbi/hmm_summary.csv")
     print(summ.round(4).T.to_string())
 
     # plot: per-trip top1 & route F1, classifier vs HMM (tuned)
@@ -152,7 +152,7 @@ def main():
         a.bar(x - w / 2, t[f"cls_{m}"], w, label="classifier only")
         a.bar(x + w / 2, t[f"hmm_{m}"], w, label="classifier + HMM")
         a.set_xticks(x, t.trip.str[-2:]); a.set(title=title, xlabel="student-test trip", ylim=(0.5, 1.0))
-    ax[0].legend(); fig.tight_layout(); fig.savefig("results/hmm_comparison.png", dpi=130)
+    ax[0].legend(); fig.tight_layout(); fig.savefig("results/05_hmm_viterbi/hmm_comparison.png", dpi=130)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """Comparison plots from the recorded experiment results (results/*.json|csv).
 
 Every plot is drawn from numbers written by scripts 02-04; nothing is typed in.
-Outputs in results/plots/.
+Outputs in results/02_model_training/plots/ (tuned_vs_untuned.png in results/04_bayesian_optimisation/).
 """
 import json
 import os
@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-OUT = "results/plots"
+OUT = "results/02_model_training/plots"
 os.makedirs(OUT, exist_ok=True)
-runs = json.load(open("results/model_runs.json"))
+runs = json.load(open("results/02_model_training/model_runs.json"))
 names = sorted(runs, key=lambda n: -np.mean([f["macro_f1"] for f in runs[n]["cv_folds"]]))
 
 # 1. CV macro F1 per model (mean +- std over folds, individual folds as dots)
@@ -69,8 +69,8 @@ for a in axs.ravel()[len(names):]:
 fig.tight_layout(); fig.savefig(f"{OUT}/confusion_matrices.png", dpi=130); plt.close(fig)
 
 # 6. epoch-wise curves: only the MLP records a training history
-if os.path.exists("artifacts/models/mlp.joblib"):
-    mlp = joblib.load("artifacts/models/mlp.joblib")[-1]
+if os.path.exists("models/mlp.joblib"):
+    mlp = joblib.load("models/mlp.joblib")[-1]
     fig, ax = plt.subplots(1, 2, figsize=(10, 3.5))
     ax[0].plot(mlp.loss_curve_); ax[0].set(xlabel="epoch", ylabel="training log loss", title="MLP training loss")
     ax[1].plot(mlp.validation_scores_); ax[1].set(xlabel="epoch", ylabel="validation accuracy",
@@ -78,13 +78,13 @@ if os.path.exists("artifacts/models/mlp.joblib"):
     fig.tight_layout(); fig.savefig(f"{OUT}/mlp_training_curves.png", dpi=130); plt.close(fig)
 
 # 7. tuned vs untuned
-if os.path.exists("results/tuned_vs_untuned.csv"):
-    t = pd.read_csv("results/tuned_vs_untuned.csv")
+if os.path.exists("results/04_bayesian_optimisation/tuned_vs_untuned.csv"):
+    t = pd.read_csv("results/04_bayesian_optimisation/tuned_vs_untuned.csv")
     ms = ["cv_macro_f1", "test_top1", "test_macro_f1", "test_log_loss"]
     fig, ax = plt.subplots(figsize=(8, 3.8))
     xx = np.arange(len(ms))
     for k, (_, r) in enumerate(t.iterrows()):
         ax.bar(xx + (k - .5) * .38, [r[m] for m in ms], .38, label=r.variant)
     ax.set_xticks(xx, ms); ax.set(title="Untuned vs Bayesian-tuned final model"); ax.legend()
-    fig.tight_layout(); fig.savefig(f"{OUT}/tuned_vs_untuned.png", dpi=130); plt.close(fig)
+    fig.tight_layout(); fig.savefig("results/04_bayesian_optimisation/tuned_vs_untuned.png", dpi=130); plt.close(fig)
 print("plots written to", OUT)

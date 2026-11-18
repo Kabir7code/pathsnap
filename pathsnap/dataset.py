@@ -6,14 +6,15 @@ import pandas as pd
 
 from .config import CFG, ROOT
 
-ART = os.path.join(ROOT, "artifacts")
+ART = os.path.join(ROOT, "data", "features")   # feature tables (regenerated, not in git)
+MODELS = os.path.join(ROOT, "models")           # trained models, final_model.json, hmm_params.json
 
 
 def load_split(split, exclude_bad=True):
     df = pd.read_parquet(os.path.join(ART, f"features_{split}.parquet"))
     pts = pd.read_parquet(os.path.join(ART, f"points_{split}.parquet"))
     if exclude_bad:
-        lab = pd.read_csv(os.path.join(ROOT, "results", f"labelling_{split}.csv"), dtype={"trip": str})
+        lab = pd.read_csv(os.path.join(ROOT, "results", "01_eda_preprocessing", f"labelling_{split}.csv"), dtype={"trip": str})
         good = set(lab.loc[lab.labelled_frac >= CFG["min_trip_label_frac"], "trip"])
         df, pts = df[df.trip.isin(good)], pts[pts.trip.isin(good)]
     # only labelled points are used for supervised training / scoring

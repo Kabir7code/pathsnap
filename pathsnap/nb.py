@@ -17,12 +17,12 @@ from sklearn.calibration import calibration_curve
 from sklearn.inspection import permutation_importance
 
 from .config import CFG, ROOT
-from .dataset import ART, load_split, subsample_points
+from .dataset import ART, MODELS, load_split, subsample_points
 from .experiment import cross_validate, evaluate
 from .features import FEATURES
 from .metrics import continuity
 
-NB_RESULTS = os.path.join(ROOT, "results", "notebooks")
+NB_RESULTS = os.path.join(ROOT, "results", "02_model_training", "notebook_runs")
 
 
 def show(fig=None):
@@ -37,9 +37,9 @@ def show(fig=None):
 def ensure_features():
     """Build the candidate/feature tables if they are missing (about 35 s)."""
     need = [os.path.join(ART, f"{k}_{s}.parquet") for k in ("features", "points") for s in ("train", "student_test")]
-    lab = [os.path.join(ROOT, "results", f"labelling_{s}.csv") for s in ("train", "student_test")]
+    lab = [os.path.join(ROOT, "results", "01_eda_preprocessing", f"labelling_{s}.csv") for s in ("train", "student_test")]
     if all(os.path.exists(p) for p in need + lab):
-        print("feature tables found in artifacts/")
+        print("feature tables found in data/features/")
         return
     if not os.path.isdir(os.path.join(CFG["data_dir"], "train")):
         raise FileNotFoundError("Put the dataset in data/train/<id>/ and data/student_test/<id>/ first.")
@@ -199,7 +199,7 @@ def hmm_compare(model, te, name, hp=None):
     from .hmm import RoadGraph
     from .labels import align_track_to_route
     tools = _hmm_tools()
-    hp = hp or json.load(open(os.path.join(ART, "hmm_params.json")))
+    hp = hp or json.load(open(os.path.join(MODELS, "hmm_params.json")))
     rows = []
     for tid, g in te.groupby("trip"):
         trip = load_trip(os.path.join(CFG["data_dir"], "student_test"), tid)

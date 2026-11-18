@@ -1,4 +1,4 @@
-"""One self-contained HTML page showing every model at once -> results/models_dashboard.html
+"""One self-contained HTML page showing every model at once -> results/00_overview/models_dashboard.html
 
 Built only from recorded results (results/*.csv|json|png) and the saved model
 files; open it in any browser (works offline, images are embedded).
@@ -23,12 +23,12 @@ def img(path, caption):
     return f'<figure><img src="data:image/png;base64,{b}" alt="{html.escape(caption)}"><figcaption>{html.escape(caption)}</figcaption></figure>'
 
 
-cmp_ = pd.read_csv(f"{R}/concurrent/model_comparison.csv").sort_values("test_top1", ascending=False)
-tvu = pd.read_csv(f"{R}/tuned_vs_untuned.csv")
-hmm = pd.read_csv(f"{R}/hmm_summary.csv").set_index("decoder")
-conc = json.load(open(f"{R}/concurrent/run_summary.json"))
-final = json.load(open("artifacts/final_model.json"))
-cards = open(f"{R}/model_cards.md").read().split("\n## ")[1:]
+cmp_ = pd.read_csv(f"{R}/03_concurrent_training/model_comparison.csv").sort_values("test_top1", ascending=False)
+tvu = pd.read_csv(f"{R}/04_bayesian_optimisation/tuned_vs_untuned.csv")
+hmm = pd.read_csv(f"{R}/05_hmm_viterbi/hmm_summary.csv").set_index("decoder")
+conc = json.load(open(f"{R}/03_concurrent_training/run_summary.json"))
+final = json.load(open("models/final_model.json"))
+cards = open(f"{R}/00_overview/model_cards.md").read().split("\n## ")[1:]
 card_by = {c.split("\n", 1)[0].strip(): c.split("\n", 1)[1] for c in cards}
 
 best = cmp_.iloc[0]
@@ -101,12 +101,12 @@ figcaption {{ font-size:12px; color:var(--muted); padding-top:4px; }}
 <tbody>{rows}</tbody></table></div></section>
 
 <section id="plots"><h2>Comparison plots</h2><div class="grid">
-{img(f"{R}/plots/cv_macro_f1.png", "Cross-validation macro F1 per model (dots = folds)")}
-{img(f"{R}/plots/student_test_top1_f1.png", "Student-test Top-1 accuracy and macro F1")}
-{img(f"{R}/plots/log_loss.png", "Log loss, CV and student test (lower is better)")}
-{img(f"{R}/plots/speed_vs_accuracy.png", "Inference speed vs accuracy")}
-{img(f"{R}/plots/confusion_matrices.png", "Confusion matrices on student test (threshold 0.5)")}
-{img(f"{R}/plots/mlp_training_curves.png", "MLP training/validation curves (only model with epoch history)")}
+{img(f"{R}/02_model_training/plots/cv_macro_f1.png", "Cross-validation macro F1 per model (dots = folds)")}
+{img(f"{R}/02_model_training/plots/student_test_top1_f1.png", "Student-test Top-1 accuracy and macro F1")}
+{img(f"{R}/02_model_training/plots/log_loss.png", "Log loss, CV and student test (lower is better)")}
+{img(f"{R}/02_model_training/plots/speed_vs_accuracy.png", "Inference speed vs accuracy")}
+{img(f"{R}/02_model_training/plots/confusion_matrices.png", "Confusion matrices on student test (threshold 0.5)")}
+{img(f"{R}/02_model_training/plots/mlp_training_curves.png", "MLP training/validation curves (only model with epoch history)")}
 </div></section>
 
 <section id="tuning"><h2>Bayesian hyperparameter optimisation (LightGBM)</h2>
@@ -116,17 +116,17 @@ figcaption {{ font-size:12px; color:var(--muted); padding-top:4px; }}
 <tr><td></td><td>Tuned</td><td>{t_tu.cv_macro_f1:.4f}</td><td>{t_tu.test_top1:.4f}</td><td>{t_tu.test_macro_f1:.4f}</td><td>{t_tu.test_log_loss:.4f}</td><td>{t_tu.test_continuity:.4f}</td><td>{t_tu.infer_ms_per_point:.4f}</td></tr>
 </tbody></table></div>
 <p class="note">Best parameters: {html.escape(", ".join(f"{k}={v:.4g}" if isinstance(v, float) else f"{k}={v}" for k, v in final['params'].items()))}</p>
-<div class="grid">{img(f"{R}/optuna_history_lightgbm.png", "Optimisation history")}{img(f"{R}/plots/tuned_vs_untuned.png", "Tuned vs untuned")}</div></section>
+<div class="grid">{img(f"{R}/04_bayesian_optimisation/optuna_history_lightgbm.png", "Optimisation history")}{img(f"{R}/04_bayesian_optimisation/tuned_vs_untuned.png", "Tuned vs untuned")}</div></section>
 
 <section id="hmm"><h2>Classifier vs classifier + HMM/Viterbi</h2>
 <div class="tablewrap"><table><thead><tr><th></th><th>Metric (mean of 10 test trips)</th><th>Classifier only</th><th>+ HMM (default)</th><th>+ HMM (tuned)</th></tr></thead><tbody>
 {"".join(f"<tr><td></td><td>{lab}</td><td>{hmm.loc['tuned','cls_'+k]:.4f}</td><td>{hmm.loc['default','hmm_'+k]:.4f}</td><td><b>{hmm.loc['tuned','hmm_'+k]:.4f}</b></td></tr>" for k, lab in [("top1","Point Top-1"),("route_precision","Route precision"),("route_recall","Route recall"),("route_f1","Route F1"),("continuity","Continuity")])}
 </tbody></table></div>
-<div class="grid">{img(f"{R}/hmm_comparison.png", "Per trip: classifier only vs classifier + HMM")}</div></section>
+<div class="grid">{img(f"{R}/05_hmm_viterbi/hmm_comparison.png", "Per trip: classifier only vs classifier + HMM")}</div></section>
 
 <section id="concurrent"><h2>Concurrent training</h2>
 <p class="note">{conc['models']} models trained in parallel on {conc['workers']} worker processes: wall clock {conc['wall_clock_s']:.0f}s vs {conc['sum_of_model_times_s']:.0f}s if run one after another ({conc['speedup']:.1f}× speed-up). Results identical to the sequential run.</p>
-<div class="grid">{img(f"{R}/concurrent/timeline.png", "Which model ran on which worker, and when")}</div></section>
+<div class="grid">{img(f"{R}/03_concurrent_training/timeline.png", "Which model ran on which worker, and when")}</div></section>
 
 <section id="cards"><h2>Model cards: what each saved model contains</h2><div class="cards">{card_html}</div></section>
 </main>
@@ -139,5 +139,5 @@ document.querySelectorAll("#cmp th").forEach((th, i) => th.onclick = () => {{
 }});
 </script>
 </body></html>"""
-open(f"{R}/models_dashboard.html", "w").write(page)
-print("wrote", f"{R}/models_dashboard.html", round(len(page) / 1e6, 2), "MB")
+open(f"{R}/00_overview/models_dashboard.html", "w").write(page)
+print("wrote", f"{R}/00_overview/models_dashboard.html", round(len(page) / 1e6, 2), "MB")

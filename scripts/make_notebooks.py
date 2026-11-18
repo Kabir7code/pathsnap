@@ -53,7 +53,7 @@ PROTOCOL = """
   - log loss
   - **Top-1 accuracy**: the share of GPS points whose highest-scoring candidate is the reference arc
   - continuity
-- The **HMM/Viterbi** decoder (parameters in `artifacts/hmm_params.json`) is then run on this model's probabilities to compare *classifier only* with *classifier + HMM*.
+- The **HMM/Viterbi** decoder (parameters in `models/hmm_params.json`) is then run on this model's probabilities to compare *classifier only* with *classifier + HMM*.
 """
 
 
@@ -114,12 +114,12 @@ write("01_EDA_and_preprocessing.ipynb", [
            "Inventory of the raw files, data-quality checks, GPS and network plots, an interactive Folium map, "
            "then building the candidate/feature tables used by every model notebook."),
     code(SETUP),
-    md("## 1. Exploratory data analysis\nRuns `scripts/00_eda.py`, which reads every trip in **train** and **student_test**, checks missing values, timestamps, coordinates and network connectivity, and saves tables and plots to `results/eda/`."),
+    md("## 1. Exploratory data analysis\nRuns `scripts/00_eda.py`, which reads every trip in **train** and **student_test**, checks missing values, timestamps, coordinates and network connectivity, and saves tables and plots to `results/01_eda_preprocessing/`."),
     code("""sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from importlib import import_module
 import_module("00_eda").main()"""),
-    code("""inv = pd.read_csv("results/eda/inventory.csv", dtype={"trip": str})
-net = pd.read_csv("results/eda/network.csv", dtype={"trip": str})
+    code("""inv = pd.read_csv("results/01_eda_preprocessing/inventory.csv", dtype={"trip": str})
+net = pd.read_csv("results/01_eda_preprocessing/network.csv", dtype={"trip": str})
 print("Missing-value / validity checks per partition:")
 display(inv.groupby("split")[["track_nan", "non_monotonic_ts", "coords_out_of_range", "gaps_over_10s"]].sum())
 display(inv.groupby("split")[["points", "duration_s", "path_km", "dt_max", "frac_dt_1s", "route_arcs"]].describe().round(2))"""),
@@ -128,7 +128,7 @@ display(inv.groupby("split")[["points", "duration_s", "path_km", "dt_max", "frac
     md("## 2. Plots"),
     code("""from IPython.display import Image, display
 for f in ["sampling_and_length", "gps_to_road_distance", "trip_locations", "network_size", "example_trip"]:
-    print(f); display(Image(f"results/eda/{f}.png"))"""),
+    print(f); display(Image(f"results/01_eda_preprocessing/{f}.png"))"""),
     md("## 3. Interactive Folium map (student_test trip 00000000)\nGPS observations, the road network near the track, and the reference route. Use the layer control (top right)."),
     code("""from pathsnap.data import load_trip
 from pathsnap.viz import trip_map
@@ -138,7 +138,7 @@ m"""),
     md("## 4. Labels and candidates\n`.route` lists the arcs driven but not which GPS point belongs to which arc. `pathsnap/labels.py` aligns them with a monotonic dynamic program. Then `pathsnap/candidates.py` lists arcs within 50 m (max 8) per point, and `pathsnap/features.py` computes 14 features per (point, candidate)."),
     code("""nb.ensure_features()
 for s in ["train", "student_test"]:
-    l = pd.read_csv(f"results/labelling_{s}.csv", dtype={"trip": str})
+    l = pd.read_csv(f"results/01_eda_preprocessing/labelling_{s}.csv", dtype={"trip": str})
     print(f"{s}: labelled {(l.labelled_frac * l.points).sum() / l.points.sum():.4f}, "
           f"mean candidate miss rate {l.candidate_miss_rate.mean():.4f}")
     display(l.sort_values("labelled_frac").head(3).round(4))"""),
@@ -312,7 +312,7 @@ print(f"\\nsearch time {search_s:.0f}s | best CV macro F1 {study.best_value:.4f}
 study.best_params"""),
     md("## Search record and plots"),
     code("""trials = study.trials_dataframe()
-os.makedirs("results/notebooks", exist_ok=True); trials.to_csv("results/notebooks/optuna_trials_lightgbm.csv", index=False)
+os.makedirs("results/02_model_training/notebook_runs", exist_ok=True); trials.to_csv("results/02_model_training/notebook_runs/optuna_trials_lightgbm.csv", index=False)
 display(trials[["number", "value"] + [c for c in trials if c.startswith("params_")]].round(4))
 fig, ax = plt.subplots(figsize=(7, 3.8))
 ax.plot(trials.number, trials.value, "o", label="trial"); ax.plot(trials.number, trials.value.cummax(), "r-", label="best so far")
@@ -346,14 +346,14 @@ plt.xticks(x, ms); plt.title("Untuned vs Bayesian-tuned LightGBM"); plt.legend()
 d = table.loc["CV macro F1", "tuned"] - table.loc["CV macro F1", "untuned"]
 print(f"CV macro F1 change: {d:+.4f} (fold std about {table.loc['CV std', 'untuned']:.4f})")"""),
     code("""import joblib
-joblib.dump(res["tuned"][3], "results/notebooks/lightgbm_tuned_notebook.joblib")
-print("tuned model saved to results/notebooks/ (the deployed model stays artifacts/models/final.joblib)")"""),
+joblib.dump(res["tuned"][3], "results/02_model_training/notebook_runs/lightgbm_tuned_notebook.joblib")
+print("tuned model saved to results/02_model_training/notebook_runs/ (the deployed model stays models/final.joblib)")"""),
 ])
 
 # ---------------------------------------------------- 08 HMM + comparison
 write("08_HMM_Viterbi_and_Final_Comparison.ipynb", [
     header("08", "HMM / Viterbi route reconstruction and final comparison of all models", "Laptop B", "~5-8 min",
-           """Uses the **saved model files** in `artifacts/models/`, so it runs independently of the other notebooks.
+           """Uses the **saved model files** in `models/`, so it runs independently of the other notebooks.
 
 **HMM design (`pathsnap/hmm.py`):**
 - **Hidden states:** the candidate arcs of each GPS point.
@@ -367,7 +367,7 @@ write("08_HMM_Viterbi_and_Final_Comparison.ipynb", [
   - **forward pass:** for each point and candidate, keep the best score of any path ending there, `δ_t(j) = max_i [δ_{t−1}(i) + log A(i→j)] + log B_t(j)`, plus a back-pointer
   - **backward pass:** follow the back-pointers from the best final state
 - Consecutive decoded arcs that aren't adjacent are joined with shortest paths to form the route.
-- Decoder parameters (`artifacts/hmm_params.json`) were tuned with Optuna on **training trips only** (`scripts/04_hmm_eval.py`)."""),
+- Decoder parameters (`models/hmm_params.json`) were tuned with Optuna on **training trips only** (`scripts/04_hmm_eval.py`)."""),
     code(SETUP), code(LOAD),
     md("## 1. All saved models on the student-test trips"),
     code("""import joblib, json
@@ -377,7 +377,7 @@ names = {"logreg": "Logistic Regression", "gnb": "Gaussian NB", "knn": "KNN", "d
          "mlp": "MLP", "final": "LightGBM tuned (deployed)"}
 models, rows = {}, []
 for k, n in names.items():
-    models[k] = joblib.load(f"artifacts/models/{k}.joblib")
+    models[k] = joblib.load(f"models/{k}.joblib")
     m, _ = evaluate(models[k], te, te_pts)
     rows.append({"model": n, "test Top-1": m["top1"], "test macro F1": m["macro_f1"], "precision": m["precision"],
                  "recall": m["recall"], "log loss": m["log_loss"], "ms/point": m["infer_ms_per_point"]})
@@ -387,7 +387,7 @@ near = te[te.dist_rank == 0][["trip", "point", "arc"]]
 mm = te_pts[te_pts.true_arc >= 0].merge(near, on=["trip", "point"], how="left")
 print(f"nearest-arc baseline Top-1: {(mm.arc == mm.true_arc).mean():.4f}")
 cmp.sort_values("test Top-1", ascending=False).round(4)"""),
-    code("""cv_rec = pd.read_csv("results/concurrent/model_comparison.csv").set_index("model")   # recorded 5-fold CV (scripts/02b)
+    code("""cv_rec = pd.read_csv("results/03_concurrent_training/model_comparison.csv").set_index("model")   # recorded 5-fold CV (scripts/02b)
 c = cmp.drop(index="LightGBM tuned (deployed)").sort_values("test Top-1")
 fig, ax = plt.subplots(1, 3, figsize=(16, 4))
 ax[0].barh(c.index, c["test Top-1"]); ax[0].set(title="Student-test Top-1 accuracy", xlim=(0.5, 0.92))
@@ -419,7 +419,7 @@ nb.plot_hmm(hmm_runs["LightGBM tuned (deployed)"], "Deployed model: per-trip cla
 from pathsnap.pipeline import predict_trip, score_trip
 from pathsnap.labels import align_track_to_route
 from pathsnap.viz import trip_map
-hp = json.load(open("artifacts/hmm_params.json"))
+hp = json.load(open("models/hmm_params.json"))
 trip = load_trip("data/student_test", "00000077")
 out = predict_trip(trip, models["final"], hp)
 s = score_trip(trip, out, align_track_to_route(trip, CFG["label_max_dist"])[0])

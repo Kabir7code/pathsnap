@@ -35,7 +35,7 @@ Free Colab has only 2 CPU cores, so runtimes are roughly **twice** the figures b
    ```
 4. Open a notebook and choose **Kernel → Restart & Run All**.
 
-The first notebook you run on a laptop builds the feature tables in `artifacts/*.parquet` (about 35 s), and later notebooks reuse them.
+The first notebook you run on a laptop builds the feature tables in `data/features/*.parquet` (about 35 s), and later notebooks reuse them.
 
 Every notebook ships **already executed**, so its outputs are visible before you run it. Re-running reproduces the same numbers, because every model, sample and data split uses seed 42.
 
@@ -60,7 +60,7 @@ Every notebook ships **already executed**, so its outputs are visible before you
 3. **Fit on the training split, evaluate on the 10 student-test trips:** a table comparing train, CV and test results, which is the **overfitting check**.
 4. **Feature importance:** native importances for trees and boosting, coefficients for logistic regression, permutation importance for the others.
 5. **Classifier only vs classifier + HMM/Viterbi** on each test trip.
-6. Results saved to `results/notebooks/<model>.json`.
+6. Results saved to `results/02_model_training/notebook_runs/<model>.json`.
 
 At the end of each notebook, the models in it are compared: CV per fold, overfitting bars, confusion matrices, a calibration curve and a summary table.
 

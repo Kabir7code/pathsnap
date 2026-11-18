@@ -5,7 +5,7 @@
  ┌───────────────────────┐   Wi-Fi   ┌───────────────────────────────────┐
  │ browser               │ ───────►  │ FastAPI  :8000                     │
  │ http://localhost:8080 │  trip ID  │  candidates → LightGBM → HMM/Viterbi│
- │ (ui/index.html)       │ ◄───────  │  scores vs hidden .route (server)  │
+ │ (app/ui/index.html)   │ ◄───────  │  scores vs hidden .route (server)  │
  └───────────────────────┘ route +   │  logs every request in the terminal│
                            metrics   └───────────────────────────────────┘
 ```
@@ -68,17 +68,17 @@ The UI never sees reference routes. It receives only the GPS points, the predict
 
 ## Part 2: Laptop 1 — start the API
 
-- Windows: double-click **`start_api.bat`**, or run it in a terminal.
+- Windows: double-click **`deploy\start_api.bat`**, or run it in a terminal.
 - macOS/Linux:
   ```bash
-  ./start_api.sh
+  ./deploy/start_api.sh
   ```
 
 Both run the check first, then start the server on `0.0.0.0:8000` using `data/student_test`.
 
 **For the real evaluation**, put the evaluators' 10 trips in a folder, one sub-folder per trip in the raw format with `.route` included, for example `pathsnap/eval_data/`. Never commit this folder (it's git-ignored). Then start the API pointing at it:
-- Windows: `start_api.bat eval_data`
-- macOS/Linux: `./start_api.sh eval_data`
+- Windows: `deploy\start_api.bat eval_data`
+- macOS/Linux: `./deploy/start_api.sh eval_data`
 
 **Keep this terminal visible during the demo.** Every click on the UI appears here, for example:
 ```
@@ -95,9 +95,9 @@ Quick test from laptop 1 itself: open `http://localhost:8000/docs` in a browser.
 
 1. Get the code (`git clone` or `git pull`). The UI needs only Python, with no packages: it's a static page.
 2. Start it:
-   - Windows: `start_ui.bat 192.168.1.23`, using laptop 1's IP. It opens Chrome automatically.
-   - macOS/Linux: `./start_ui.sh 192.168.1.23`, then open the printed URL.
-   - Or by hand: `cd ui`, then `python -m http.server 8080`, then open `http://localhost:8080/?api=http://<LAPTOP1_IP>:8000`.
+   - Windows: `deploy\start_ui.bat 192.168.1.23`, using laptop 1's IP. It opens Chrome automatically.
+   - macOS/Linux: `./deploy/start_ui.sh 192.168.1.23`, then open the printed URL.
+   - Or by hand: `cd app/ui`, then `python -m http.server 8080`, then open `http://localhost:8080/?api=http://<LAPTOP1_IP>:8000`.
 3. In the page: the top bar should show a green **API online** pill. Then either:
    - click a trip to draw it and see its metrics, or
    - click **Run all trips**, then open the **All trips** tab for the summary table.
@@ -110,7 +110,7 @@ Quick test from laptop 1 itself: open `http://localhost:8000/docs` in a browser.
 - [ ] Laptop 1: start the API with the evaluators' folder, and keep its terminal visible.
 - [ ] Laptop 2: open the UI with laptop 1's IP, check the green pill, check all 10 trips are listed.
 - [ ] Run one trip as a smoke test, and confirm a `METRICS` line appears on laptop 1.
-- [ ] Have `results/models_dashboard.html` open in another tab for model questions.
+- [ ] Have `results/00_overview/models_dashboard.html` open in another tab for model questions.
 
 ## Troubleshooting
 

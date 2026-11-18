@@ -8,8 +8,8 @@ Protocol
     and is scored on ALL candidates of the held-out trips.
   * The model is then refitted on the training split and scored on the ten
     student-testing trips.
-Outputs: results/model_comparison.csv, results/model_runs.json,
-         artifacts/models/<name>.joblib
+Outputs: results/02_model_training/model_comparison.csv, results/02_model_training/model_runs.json,
+         models/<name>.joblib
 """
 import argparse
 import json
@@ -57,9 +57,9 @@ def main():
     seed = CFG["seed"]
     tr, tr_pts = load_split("train")
     te, te_pts = load_split("student_test", exclude_bad=False)
-    os.makedirs("artifacts/models", exist_ok=True)
+    os.makedirs("models", exist_ok=True)
     arcs_cache = {}
-    runs = json.load(open("results/model_runs.json")) if os.path.exists("results/model_runs.json") else {}
+    runs = json.load(open("results/02_model_training/model_runs.json")) if os.path.exists("results/02_model_training/model_runs.json") else {}
 
     for name in args.models:
         print(f"=== {name}", flush=True)
@@ -88,12 +88,12 @@ def main():
             conts.append(continuity(g.sort_values("point").pred_arc.to_numpy(), arcs_cache[tid]))
         test_m["continuity"] = float(np.mean(conts))
         test_m["fit_s"] = fit_s
-        joblib.dump(model, f"artifacts/models/{name}.joblib", compress=3)
+        joblib.dump(model, f"models/{name}.joblib", compress=3)
         runs[name] = {"family": MODEL_INFO[name][0], "config": MODEL_INFO[name][1], "seed": seed,
                       "train_rows": len(fit), "cv_folds": folds, "student_test": test_m}
         print(f"  TEST: F1={test_m['macro_f1']:.4f} top1={test_m['top1']:.4f} ll={test_m['log_loss']:.4f} "
               f"cont={test_m['continuity']:.4f} infer={test_m['infer_s']:.2f}s", flush=True)
-        json.dump(runs, open("results/model_runs.json", "w"), indent=1)
+        json.dump(runs, open("results/02_model_training/model_runs.json", "w"), indent=1)
 
     rows = []
     for name, r in runs.items():
@@ -106,7 +106,7 @@ def main():
                      "test_recall": t["recall"], "test_log_loss": t["log_loss"], "test_continuity": t["continuity"],
                      "fit_s": t["fit_s"], "infer_ms_per_point": t["infer_ms_per_point"]})
     out = pd.DataFrame(rows).sort_values("cv_macro_f1", ascending=False)
-    out.to_csv("results/model_comparison.csv", index=False)
+    out.to_csv("results/02_model_training/model_comparison.csv", index=False)
     print(out.round(4).to_string(index=False))
 
 

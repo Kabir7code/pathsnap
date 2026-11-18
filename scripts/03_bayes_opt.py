@@ -2,12 +2,12 @@
 
 Objective : mean macro F1 over 3-fold GroupKFold on the 80 training trips
             (trip-grouped, so no point of a validation trip is ever fitted).
-Record    : every trial is stored in results/optuna_<model>.db (Optuna study)
-            and exported to results/optuna_trials_<model>.csv.
+Record    : every trial is stored in results/04_bayesian_optimisation/optuna_<model>.db (Optuna study)
+            and exported to results/04_bayesian_optimisation/optuna_trials_<model>.csv.
 Afterwards: the best configuration and the untuned default are both
             evaluated with the SAME 5-fold CV and the SAME student-test
-            protocol as scripts/02_train_models.py -> results/tuned_vs_untuned.csv
-            The tuned model is saved as artifacts/models/final.joblib.
+            protocol as scripts/02_train_models.py -> results/04_bayesian_optimisation/tuned_vs_untuned.csv
+            The tuned model is saved as models/final.joblib.
 """
 import argparse
 import json
@@ -76,7 +76,7 @@ def main():
         print(f"trial {trial.number}: F1={f1:.4f} {params}", flush=True)
         return f1
 
-    storage = f"sqlite:///results/optuna_{args.model}.db"
+    storage = f"sqlite:///results/04_bayesian_optimisation/optuna_{args.model}.db"
     study = optuna.create_study(study_name=f"pathsnap_{args.model}", direction="maximize",
                                 sampler=optuna.samplers.TPESampler(seed=seed, n_startup_trials=8),
                                 storage=storage, load_if_exists=True)
@@ -85,7 +85,7 @@ def main():
     if remaining > 0:
         study.optimize(objective, n_trials=remaining)
     search_s = time.time() - t0
-    study.trials_dataframe().to_csv(f"results/optuna_trials_{args.model}.csv", index=False)
+    study.trials_dataframe().to_csv(f"results/04_bayesian_optimisation/optuna_trials_{args.model}.csv", index=False)
     best = study.best_params
     print("best", study.best_value, best)
 
@@ -95,7 +95,7 @@ def main():
     ax.plot(df.number, df.value, "o", alpha=.6, label="trial")
     ax.plot(df.number, df.value.cummax(), "-", color="C3", label="best so far")
     ax.set(xlabel="trial", ylabel="3-fold CV macro F1", title=f"Bayesian optimisation ({args.model}, TPE)")
-    ax.legend(); fig.tight_layout(); fig.savefig(f"results/optuna_history_{args.model}.png", dpi=130)
+    ax.legend(); fig.tight_layout(); fig.savefig(f"results/04_bayesian_optimisation/optuna_history_{args.model}.png", dpi=130)
 
     rows = []
     for label, params in [("untuned", {}), ("tuned", best)]:
@@ -112,13 +112,13 @@ def main():
                      "test_log_loss": test["log_loss"], "test_continuity": test["continuity"],
                      "fit_s": test["fit_s"], "infer_ms_per_point": test["infer_ms_per_point"]})
         if label == "tuned":
-            os.makedirs("artifacts/models", exist_ok=True)
-            joblib.dump(model, "artifacts/models/final.joblib", compress=3)
+            os.makedirs("models", exist_ok=True)
+            joblib.dump(model, "models/final.joblib", compress=3)
             json.dump({"model": args.model, "params": best, "seed": seed, "search_seconds": search_s,
                        "trials": len(study.trials), "best_cv3_macro_f1": study.best_value},
-                      open("artifacts/final_model.json", "w"), indent=1)
+                      open("models/final_model.json", "w"), indent=1)
     out = pd.DataFrame(rows)
-    out.to_csv("results/tuned_vs_untuned.csv", index=False)
+    out.to_csv("results/04_bayesian_optimisation/tuned_vs_untuned.csv", index=False)
     print(out.round(4).to_string(index=False))
     print(f"search time: {search_s:.0f}s")
 

@@ -1,6 +1,6 @@
 """Exploratory data analysis of the raw dataset (train + student_test).
 
-Outputs (results/eda/):
+Outputs (results/01_eda_preprocessing/):
   inventory.csv          per-trip file sizes, row counts, time span, extent
   network.csv            per-trip graph size, connectivity, isolated nodes
   summary.txt            partition-level summary + data-quality notes
@@ -23,7 +23,7 @@ from pathsnap.candidates import ArcIndex
 from pathsnap.config import CFG
 from pathsnap.data import list_trips, load_trip
 
-OUT = "results/eda"
+OUT = "results/01_eda_preprocessing"
 os.makedirs(OUT, exist_ok=True)
 
 

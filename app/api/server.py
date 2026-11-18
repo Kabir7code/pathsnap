@@ -1,7 +1,7 @@
 """PathSnap FastAPI backend (runs on Laptop 1).
 
 Run:
-  PATHSNAP_EVAL_DIR=/path/to/evaluator_trips uvicorn api.server:app --host 0.0.0.0 --port 8000
+  PATHSNAP_EVAL_DIR=/path/to/evaluator_trips uvicorn app.api.server:app --host 0.0.0.0 --port 8000
 
 PATHSNAP_EVAL_DIR is a folder of trip sub-folders in the raw format
 (<id>/<id>.nodes/.arcs/.track and, server-side only, <id>.route).
@@ -24,7 +24,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 from pathsnap.config import CFG
 from pathsnap.data import list_trips, load_trip
@@ -36,12 +36,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 log = logging.getLogger("pathsnap")
 
 EVAL_DIR = os.environ.get("PATHSNAP_EVAL_DIR", os.path.join(CFG["data_dir"], "student_test"))
-MODEL_PATH = os.path.join(ROOT, "artifacts", "models", "final.joblib")
-HMM_PATH = os.path.join(ROOT, "artifacts", "hmm_params.json")
+MODEL_PATH = os.path.join(ROOT, "models", "final.joblib")
+HMM_PATH = os.path.join(ROOT, "models", "hmm_params.json")
 
 model = joblib.load(MODEL_PATH)
 hmm_params = json.load(open(HMM_PATH))
-model_meta = json.load(open(os.path.join(ROOT, "artifacts", "final_model.json")))
+model_meta = json.load(open(os.path.join(ROOT, "models", "final_model.json")))
 log.info("loaded model %s from %s", model_meta["model"], MODEL_PATH)
 log.info("HMM params %s", hmm_params)
 log.info("evaluation trips dir: %s (%d trips)", EVAL_DIR, len(list_trips(EVAL_DIR)))
