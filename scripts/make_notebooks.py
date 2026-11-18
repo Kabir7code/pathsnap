@@ -1,5 +1,10 @@
-"""Generate the Jupyter notebooks in notebooks/ (run once; then execute them in Jupyter)."""
+"""Generate the Jupyter notebooks in notebooks/.
+
+  python scripts/make_notebooks.py            # (re)write all notebooks (clears their saved outputs)
+  python scripts/make_notebooks.py 09         # only rewrite the listed notebooks
+"""
 import os
+import sys
 
 import nbformat as nbf
 
@@ -34,7 +39,12 @@ def code(s):
     return nbf.v4.new_code_cell(s.strip())
 
 
+ONLY = sys.argv[1:]
+
+
 def write(name, cells):
+    if ONLY and not any(name.startswith(o) for o in ONLY):
+        return
     n = nbf.v4.new_notebook()
     cells[0].source = cells[0].source.replace("{FILE}", name)
     n.cells = [cells[0], md("**On Google Colab:** run the next cell first. It clones the repo, installs packages and loads `Student_folder.zip` from your Google Drive (`MyDrive/Student_folder.zip`) or asks you to upload it. Locally it does nothing."), code(COLAB)] + cells[1:]
@@ -429,4 +439,84 @@ trip_map(trip, [("Reference route", trip.route, "#1a9e3a", 7, None),
                 ("Classifier + HMM route", out["route"], "#d62728", 3, None)],
          f"00000077 | Top-1 cls {s['cls_top1']:.3f} → HMM {s['hmm_top1']:.3f}")"""),
 ])
-print("all notebooks written to", OUT)
+# ------------------------------------------------- 09 final model selection
+write("09_Final_Model_Selection.ipynb", [
+    header("09", "Final model selection and final tuning (LightGBM vs Random Forest vs HistGB)", "either laptop", "~1 min",
+           """The three strongest classifiers are compared as **complete systems** (classifier + HMM/Viterbi) on **88 development trips**:
+- 78 training trips, scored **out-of-fold**: each trip is decoded with probabilities from a model that never saw it.
+- The 10 student-test trips.
+
+Each model gets **its own HMM decoder**, tuned on training trips only. The evaluator-test trips are **not used**: the brief forbids using them to choose a model.
+
+This notebook reads the recorded outputs of `scripts/10_final_model_selection.py`, `10b_add_histgb_to_selection.py` and `11_retune_lightgbm_with_hmm.py`. It recomputes the summary tables and the paired bootstrap statistics from the per-trip results, and draws the plots."""),
+    code(SETUP),
+    md("""## 1. Pre-declared decision rule (fixed before the results were seen)
+1. **Primary:** mean per-trip Top-1 after the HMM over the 88 trips. A model wins only if the 95% bootstrap CI of the paired difference excludes 0.
+2. If tied, **secondary:** route F1 after the HMM, judged the same way.
+3. If still tied: probability quality (log loss), inference speed and model size."""),
+    code("""import json
+S = "results/08_final_model_selection"
+per = pd.read_csv(f"{S}/per_trip_all_models.csv", dtype={"trip": str})
+own = per[per.decoder == "own"].copy()
+own["set"] = own.split.map({"train_oof": "78 training trips (OOF)", "student_test": "10 student-test trips"})
+cols = ["cls_top1", "hmm_top1", "cls_route_f1", "hmm_route_f1", "cls_continuity", "hmm_continuity"]
+tab = pd.concat([own.groupby(["set", "model"])[cols].mean(),
+                 own.assign(set="ALL 88 development trips").groupby(["set", "model"])[cols].mean()])
+tab.columns = ["Top-1 classifier", "Top-1 + HMM", "route F1 classifier", "route F1 + HMM", "continuity classifier", "continuity + HMM"]
+tab.round(4)"""),
+    md("## 2. Accuracy before vs after the HMM"),
+    code("""c = {"LightGBM (tuned)": "#1f5fd1", "Random Forest": "#2ca02c", "HistGB": "#9467bd"}
+fig, axs = plt.subplots(1, 3, figsize=(16, 4.3))
+for ax, sp in zip(axs, ["78 training trips (OOF)", "10 student-test trips", "ALL 88 development trips"]):
+    t = tab.loc[sp]
+    for i, m in enumerate(c):
+        for j, (k, al) in enumerate([("Top-1 classifier", .45), ("Top-1 + HMM", 1)]):
+            v = t.loc[m, k]; x = i + (j - .5) * .38
+            ax.bar(x, v, .38, color=c[m], alpha=al); ax.text(x, v + .002, f"{v:.3f}", ha="center", fontsize=8)
+    ax.set_xticks(range(3), ["LightGBM", "Random Forest", "HistGB"]); ax.set(title=sp, ylim=(0.85, 0.97), ylabel="mean per-trip Top-1")
+axs[0].bar([], [], color="grey", alpha=.45, label="classifier only"); axs[0].bar([], [], color="grey", label="+ HMM"); axs[0].legend(loc="upper left")
+fig.tight_layout(); nb.show(fig)"""),
+    md("## 3. Is any difference real? Paired bootstrap 95% CI over the 88 trips"),
+    code("""def paired(a_name, b_name, metric):
+    a = own[own.model == a_name].set_index(["split", "trip"])[metric]
+    b = own[own.model == b_name].set_index(["split", "trip"])[metric].reindex(a.index)
+    d = (b - a).to_numpy(); bo = np.random.default_rng(SEED).choice(d, (10_000, len(d))).mean(axis=1)
+    lo, hi = np.percentile(bo, [2.5, 97.5])
+    return {"comparison": f"{b_name} − {a_name}", "metric": metric, "mean diff": d.mean(), "CI low": lo, "CI high": hi,
+            "significant": not (lo <= 0 <= hi), f"{b_name} better (trips)": int((d > 0).sum()), "other better (trips)": int((d < 0).sum())}
+rows = [paired(a, b, m) for a, b in [("LightGBM (tuned)", "Random Forest"), ("LightGBM (tuned)", "HistGB")]
+        for m in ["hmm_top1", "hmm_route_f1", "cls_top1", "cls_route_f1"]]
+st = pd.DataFrame(rows); display(st.round(4))
+fig, ax = plt.subplots(figsize=(9, 4))
+for i, r in st.iterrows():
+    ax.errorbar(r["mean diff"], i, xerr=[[r["mean diff"] - r["CI low"]], [r["CI high"] - r["mean diff"]]], fmt="o", capsize=4,
+                color="#2ca02c" if "Random" in r.comparison else "#9467bd")
+ax.axvline(0, color="k", lw=1); ax.set_yticks(range(len(st)), [f"{r.comparison.split(' −')[0]}: {r.metric}" for r in st.itertuples()])
+ax.set(xlabel="difference vs LightGBM (95% CI); a CI crossing 0 means no significant difference", title="Paired differences vs LightGBM")
+fig.tight_layout(); nb.show(fig)"""),
+    md("## 4. Practical criteria: probability quality, speed, size"),
+    code("""dec = json.load(open(f"{S}/decision.json"))
+pd.DataFrame(dec["probability_quality_and_cost"]).T.round(4)"""),
+    md("""## 5. Decision
+- **After the HMM, all three are statistically tied on Top-1.**
+- **LightGBM is significantly better than Random Forest on route F1 after the HMM.**
+- LightGBM is significantly better than both before the HMM, as a classifier on its own.
+- It also has the best-calibrated probabilities (lowest log loss), which matters because the HMM uses them directly.
+
+**Final model: LightGBM.**"""),
+    md("## 6. Final tuning of LightGBM with the HMM in the loop"),
+    code("""T = "results/09_final_tuning_lightgbm_with_hmm"
+tv = pd.read_csv(f"{T}/tuned_vs_untuned_lightgbm.csv").set_index("variant")
+d7 = json.load(open(f"{T}/decision_lightgbm.json"))
+print("objective:", d7["search"]["objective"], "| trials:", d7["search"]["trials"])
+print("best params:", d7["search"]["best_params"])
+print(f"re-tuned − current, Top-1 + HMM over 88 trips: {d7['tuned_minus_untuned_dev88_hmm_top1']:+.4f}  95% CI {np.round(d7['ci95'], 4)}")
+print("deployed:", d7["deployed_variant"])
+tv[["cv_macro_f1", "test_top1", "test_log_loss", "test_cls_top1_trip_mean", "test_hmm_top1_trip_mean", "dev88_hmm_top1", "dev88_hmm_route_f1"]].T.round(4)"""),
+    code("""tri = pd.read_csv(f"{T}/trials_lightgbm.csv")
+fig, ax = plt.subplots(figsize=(7, 3.8))
+ax.plot(tri.number, tri.value, "o", label="trial"); ax.plot(tri.number, tri.value.cummax(), "r-", label="best so far")
+ax.set(xlabel="trial", ylabel="mean Top-1 + HMM (OOF training trips)", title="Bayesian optimisation with the HMM in the loop"); ax.legend()
+fig.tight_layout(); nb.show(fig)"""),
+])
+print("notebooks written to", OUT)

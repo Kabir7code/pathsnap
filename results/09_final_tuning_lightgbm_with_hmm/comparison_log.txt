@@ -1,0 +1,65 @@
+[    13s] model=lightgbm | decoder={'beta': 1.278, 'emission_weight': 2.623, 'dijkstra_cutoff': 1500.0, 'unreachable_logp': -43.252, 'backward_tolerance': 15.0} | tuning trips=62
+[    13s] best 0.9322 {'n_estimators': 500, 'learning_rate': 0.023840834569139942, 'num_leaves': 138, 'min_child_samples': 82, 'subsample': 0.949699467469508, 'colsample_bytree': 0.9382196066725687, 'reg_lambda': 0.043683124270273606}
+[    14s] evaluating current (tuned for classifier F1)
+[   211s] evaluating re-tuned (HMM objective)
+[   337s] tuned model is not significantly better -> deployed model unchanged
+variant                                                                                                                                                                                                       current (tuned for classifier F1)                                                                                                                                                                                              re-tuned (HMM objective)
+params                       {"n_estimators": 500, "learning_rate": 0.013121926330464457, "num_leaves": 69, "min_child_samples": 11, "subsample": 0.7823386527602171, "colsample_bytree": 0.9386544732663078, "reg_lambda": 0.8883381805305883}  {"n_estimators": 500, "learning_rate": 0.023840834569139942, "num_leaves": 138, "min_child_samples": 82, "subsample": 0.949699467469508, "colsample_bytree": 0.9382196066725687, "reg_lambda": 0.043683124270273606}
+cv_macro_f1                                                                                                                                                                                                                            0.927865                                                                                                                                                                                                              0.927618
+cv_macro_f1_std                                                                                                                                                                                                                        0.013575                                                                                                                                                                                                              0.013799
+cv_top1                                                                                                                                                                                                                                0.883236                                                                                                                                                                                                               0.88344
+cv_log_loss                                                                                                                                                                                                                            0.110424                                                                                                                                                                                                              0.112431
+test_top1                                                                                                                                                                                                                              0.885864                                                                                                                                                                                                              0.886804
+test_macro_f1                                                                                                                                                                                                                          0.928225                                                                                                                                                                                                              0.929151
+test_log_loss                                                                                                                                                                                                                          0.103958                                                                                                                                                                                                              0.103664
+test_infer_ms_per_point                                                                                                                                                                                                                 0.04775                                                                                                                                                                                                              0.069218
+fit_s                                                                                                                                                                                                                                  5.338578                                                                                                                                                                                                              7.873441
+train_oof_cls_top1                                                                                                                                                                                                                     0.886751                                                                                                                                                                                                              0.887796
+train_oof_hmm_top1                                                                                                                                                                                                                     0.931628                                                                                                                                                                                                              0.932479
+train_oof_hmm_route_f1                                                                                                                                                                                                                 0.938784                                                                                                                                                                                                              0.938471
+test_cls_top1_trip_mean                                                                                                                                                                                                                0.901694                                                                                                                                                                                                              0.902749
+test_hmm_top1_trip_mean                                                                                                                                                                                                                0.949055                                                                                                                                                                                                              0.947183
+test_hmm_route_f1_trip_mean                                                                                                                                                                                                            0.958318                                                                                                                                                                                                              0.958045
+dev88_hmm_top1                                                                                                                                                                                                                         0.933609                                                                                                                                                                                                               0.93415
+dev88_hmm_route_f1                                                                                                                                                                                                                     0.941003                                                                                                                                                                                                              0.940695
+{
+ "model": "lightgbm",
+ "search": {
+  "trials": 20,
+  "seconds": 729.858666,
+  "objective": "mean per-trip HMM Top-1, 3-fold OOF on training trips <= 3000 points",
+  "best_value": 0.9321746452112966,
+  "best_params": {
+   "n_estimators": 500,
+   "learning_rate": 0.023840834569139942,
+   "num_leaves": 138,
+   "min_child_samples": 82,
+   "subsample": 0.949699467469508,
+   "colsample_bytree": 0.9382196066725687,
+   "reg_lambda": 0.043683124270273606
+  }
+ },
+ "tuned_minus_untuned_dev88_hmm_top1": 0.0005417363297837,
+ "ci95": [
+  -0.0027035780350406747,
+  0.004774950709280467
+ ],
+ "deployed_variant": "current (tuned for classifier F1)",
+ "deployed_params": {
+  "n_estimators": 500,
+  "learning_rate": 0.013121926330464457,
+  "num_leaves": 69,
+  "min_child_samples": 11,
+  "subsample": 0.7823386527602171,
+  "colsample_bytree": 0.9386544732663078,
+  "reg_lambda": 0.8883381805305883
+ },
+ "decoder_params": {
+  "beta": 1.2783112279663746,
+  "emission_weight": 2.6225979199055103,
+  "dijkstra_cutoff": 1500.0,
+  "unreachable_logp": -43.25243870138592,
+  "backward_tolerance": 15.0
+ },
+ "evaluator_test_used": false
+}

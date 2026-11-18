@@ -1,6 +1,6 @@
 # PathSnap notebooks
 
-There are 8 notebooks, split so that **Laptop A runs 01–04** and **Laptop B runs 05–08**. Each one runs on its own: you don't need to run the others first.
+There are 9 notebooks, split so that **Laptop A runs 01–04** and **Laptop B runs 05–08**. **09** reads recorded results, takes about 1 minute, and runs anywhere. Each one runs on its own: you don't need to run the others first.
 
 ## Run on Google Colab (no install needed)
 1. Upload **`Student_folder.zip`** (the dataset) to your Google Drive, in **My Drive**.
@@ -17,6 +17,7 @@ There are 8 notebooks, split so that **Laptop A runs 01–04** and **Laptop B ru
 | B | [06 MLP](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/06_MLP_Neural_Network.ipynb) |
 | B | [07 Bayesian optimisation](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/07_Bayesian_Hyperparameter_Optimisation.ipynb) |
 | B | [08 HMM/Viterbi & final comparison](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/08_HMM_Viterbi_and_Final_Comparison.ipynb) |
+| any | [09 Final model selection](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/09_Final_Model_Selection.ipynb) |
 
 Free Colab has only 2 CPU cores, so runtimes are roughly **twice** the figures below. KNN (03) and Bayesian optimisation (07) are the slowest, at about 20–40 min each on Colab.
 
@@ -51,6 +52,7 @@ Every notebook ships **already executed**, so its outputs are visible before you
 | 06 | `06_MLP_Neural_Network` | B | ~6–8 min | **MLP** (14 → 64 → 32 → 1) | Same set as 02, plus **MLP training loss and validation accuracy per epoch** |
 | 07 | `07_Bayesian_Hyperparameter_Optimisation` | B | ~10–12 min | **Bayesian optimisation of LightGBM** (Optuna TPE, 20 trials), then **tuned vs untuned** | Optimisation history, hyperparameter importance, slice plots per parameter, tuned vs untuned bar chart |
 | 08 | `08_HMM_Viterbi_and_Final_Comparison` | B | ~5–8 min | **All 10 saved models** on student test, **HMM/Viterbi** before/after for the top 3, route map | Test Top-1 / F1 / log loss for all models, recorded CV F1 ± std, top-3 before/after HMM, per-trip HMM chart, **Folium map** comparing reference, classifier and HMM routes |
+| 09 | `09_Final_Model_Selection` | any | ~1 min | **LightGBM vs Random Forest vs HistGB** as full systems (classifier + HMM) on 88 development trips; paired bootstrap CIs; pre-declared decision rule; final tuning of LightGBM with the HMM in the loop | Before/after-HMM bars for the 3 models, CI plot of the differences, final-tuning history |
 
 \*Approximate, on a 4-core laptop.
 

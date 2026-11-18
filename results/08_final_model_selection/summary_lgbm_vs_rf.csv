@@ -1,0 +1,13 @@
+decoder,split,model,cls_top1,hmm_top1,cls_route_f1,hmm_route_f1,cls_continuity,hmm_continuity
+own,student_test,LightGBM (tuned),0.9017,0.9491,0.7865,0.9583,0.9329,0.9776
+own,student_test,Random Forest,0.8937,0.9482,0.765,0.9569,0.9254,0.9778
+own,train_oof,LightGBM (tuned),0.8868,0.9316,0.775,0.9388,0.9181,0.9698
+own,train_oof,Random Forest,0.8822,0.9302,0.7581,0.9378,0.9122,0.9696
+shared,student_test,LightGBM (tuned),0.9017,0.9491,0.7865,0.9583,0.9329,0.9776
+shared,student_test,Random Forest,0.8937,0.9493,0.765,0.9577,0.9254,0.9775
+shared,train_oof,LightGBM (tuned),0.8868,0.9316,0.775,0.9388,0.9181,0.9698
+shared,train_oof,Random Forest,0.8822,0.9299,0.7581,0.938,0.9122,0.9693
+own,all_88_dev_trips,LightGBM (tuned),0.8884,0.9336,0.7763,0.941,0.9198,0.9707
+own,all_88_dev_trips,Random Forest,0.8835,0.9322,0.7589,0.94,0.9137,0.9705
+shared,all_88_dev_trips,LightGBM (tuned),0.8884,0.9336,0.7763,0.941,0.9198,0.9707
+shared,all_88_dev_trips,Random Forest,0.8835,0.9321,0.7589,0.9403,0.9137,0.9702

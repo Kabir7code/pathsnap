@@ -27,7 +27,7 @@ pathsnap/                  core library (imported by every script, the API and t
   nb.py                    helpers used by the notebooks
   config.py                all pipeline settings
 scripts/                   the pipeline, run in numeric order (see "Reproducing the experiments")
-notebooks/                 8 executed Jupyter notebooks (EDA, every model family, Bayesian opt., HMM), Colab-ready
+notebooks/                 9 executed Jupyter notebooks (EDA, every model family, Bayesian opt., HMM, final selection), Colab-ready
 app/
   api/server.py            FastAPI backend (laptop 1)
   ui/index.html            evaluator UI (laptop 2), Leaflet bundled in ui/vendor/
@@ -41,6 +41,8 @@ results/
   05_hmm_viterbi/          decoder tuning, classifier vs classifier+HMM, top-3 comparison
   06_folium_maps/          interactive Folium maps (EDA and student-test predictions)
   07_api_ui/               API end-to-end log, UI screenshots
+  08_final_model_selection/ LightGBM vs Random Forest vs HistGB as full systems on 88 development trips
+  09_final_tuning_lightgbm_with_hmm/ Bayesian tuning of LightGBM with the HMM in the loop
 report/                    technical report (PDF)
 deploy/                    start_api / start_ui scripts (macOS/Linux .sh, Windows .bat)
 docs/DEPLOYMENT.md         step-by-step two-laptop guide and troubleshooting
@@ -61,6 +63,9 @@ data/                      NOT in git: raw dataset (train/, student_test/) and g
 | `06_plots.py` | `results/02_model_training/plots/`, `results/04_bayesian_optimisation/tuned_vs_untuned.png` |
 | `07_model_cards.py`, `08_models_dashboard.py` | `results/00_overview/` |
 | `09_hmm_top3.py` | `results/05_hmm_viterbi/hmm_top3*` |
+| `10_final_model_selection.py` | `results/08_final_model_selection/` (LightGBM vs Random Forest, 88 trips) |
+| `10b_add_histgb_to_selection.py` | `results/08_final_model_selection/` (adds HistGB) |
+| `11_retune_lightgbm_with_hmm.py` | `results/09_final_tuning_lightgbm_with_hmm/` (replaces `models/final.joblib` only if significantly better) |
 | `check_setup.py` | pre-flight check for the demo (prints this laptop's IP) |
 | `make_notebooks.py` | regenerates `notebooks/*.ipynb` |
 
@@ -89,16 +94,32 @@ python scripts/06_plots.py
 python scripts/07_model_cards.py
 python scripts/08_models_dashboard.py
 python scripts/09_hmm_top3.py
+python scripts/10_final_model_selection.py
+python scripts/10b_add_histgb_to_selection.py
+python scripts/11_retune_lightgbm_with_hmm.py --model lightgbm --trials 20
 ```
 
 ### Notebooks
 The same experiments, with explanations and plots, are in `notebooks/`. They're saved **with outputs**, so you can read them without running anything.
 - **Laptop A** runs 01–04.
 - **Laptop B** runs 05–08.
+- **09** (final model selection) reads recorded results, takes about 1 minute, and runs anywhere.
 
 Each notebook runs on its own: `jupyter notebook notebooks/`, then Kernel → Restart & Run All. Each one also opens in **Google Colab** via the badge at its top. See `notebooks/README.md` for the Colab links and what each notebook contains.
 
 Every script fixes its random seed from `pathsnap/config.py` (`seed = 42`). Steps 02–04 are the slow ones, taking minutes to tens of minutes on a 4-core laptop.
+
+## The final model: LightGBM, and why
+
+| Step | Evidence | Outcome |
+|---|---|---|
+| Compare 9 classifiers | 5-fold GroupKFold CV + 10 student-test trips (`results/02_*`, `03_*`) | LightGBM best on every metric (test Top-1 0.887; nearest-road baseline 0.542) |
+| Bayesian tuning, classifier objective | 21 Optuna trials, CV macro F1 (`results/04_*`) | No meaningful gain (0.9277 → 0.9279); tuned settings deployed |
+| Add HMM/Viterbi | `results/05_hmm_viterbi/` | Top-1 0.902 → 0.949, route F1 0.787 → 0.958 (10 test trips, per-trip mean) |
+| **Final selection:** LightGBM vs Random Forest vs HistGB as complete systems | **88 development trips** (78 training trips scored out-of-fold + 10 student-test trips). Each model has its own tuned HMM decoder. Paired bootstrap 95% CIs and a decision rule fixed in advance (`results/08_*`, `notebooks/09_*`) | After the HMM all three are statistically tied on Top-1 (93.36 / 93.45 / 93.22%). LightGBM is significantly better than Random Forest on route F1 after the HMM, significantly better than both before the HMM, and has the best-calibrated probabilities. **LightGBM kept.** |
+| **Final tuning** with the HMM in the loop | 20 Optuna trials; objective = Top-1 after the HMM on out-of-fold training trips (`results/09_*`) | +0.05 points, **not significant** (95% CI −0.27 to +0.48 points over 88 trips), so the deployed model is unchanged |
+
+The evaluator-test trips were never used to train, select or tune anything, as the brief requires.
 
 ## Running the demo (two laptops)
 
@@ -151,7 +172,8 @@ Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, 
 | Feature engineering | `pathsnap/features.py` (14 features, documented in the module docstring) |
 | Model training: every model | `pathsnap/models.py`, `scripts/02_train_models.py`, `scripts/02b_train_concurrent.py`, `notebooks/02_*` to `06_*` |
 | Model evaluation: metrics, plots, confusion matrices | `pathsnap/metrics.py`, `pathsnap/experiment.py`, `scripts/06_plots.py`, `results/02_model_training/`, `results/03_concurrent_training/` |
-| Hyperparameter optimisation: code, search config, results | `scripts/03_bayes_opt.py`, `notebooks/07_*`, `results/04_bayesian_optimisation/` |
+| Hyperparameter optimisation: code, search config, results | `scripts/03_bayes_opt.py`, `scripts/11_retune_lightgbm_with_hmm.py`, `notebooks/07_*`, `results/04_bayesian_optimisation/`, `results/09_final_tuning_lightgbm_with_hmm/` (Optuna `.db` search records) |
+| Model selection | `scripts/10_final_model_selection.py`, `scripts/10b_add_histgb_to_selection.py`, `notebooks/09_*`, `results/08_final_model_selection/` |
 | HMM and Viterbi | `pathsnap/hmm.py`, `pathsnap/pipeline.py`, `scripts/04_hmm_eval.py`, `scripts/09_hmm_top3.py`, `notebooks/08_*`, `results/05_hmm_viterbi/` |
 | API | `app/api/server.py` (endpoints `/health`, `/models`, `/info`, `/trips`, `/predict`) |
 | UI | `app/ui/index.html` (+ `app/ui/vendor/leaflet/`) |

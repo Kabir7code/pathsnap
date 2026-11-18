@@ -1,0 +1,41 @@
+{
+ "model": "lightgbm",
+ "search": {
+  "trials": 20,
+  "seconds": 729.858666,
+  "objective": "mean per-trip HMM Top-1, 3-fold OOF on training trips <= 3000 points",
+  "best_value": 0.9321746452112966,
+  "best_params": {
+   "n_estimators": 500,
+   "learning_rate": 0.023840834569139942,
+   "num_leaves": 138,
+   "min_child_samples": 82,
+   "subsample": 0.949699467469508,
+   "colsample_bytree": 0.9382196066725687,
+   "reg_lambda": 0.043683124270273606
+  }
+ },
+ "tuned_minus_untuned_dev88_hmm_top1": 0.0005417363297837,
+ "ci95": [
+  -0.0027035780350406747,
+  0.004774950709280467
+ ],
+ "deployed_variant": "current (tuned for classifier F1)",
+ "deployed_params": {
+  "n_estimators": 500,
+  "learning_rate": 0.013121926330464457,
+  "num_leaves": 69,
+  "min_child_samples": 11,
+  "subsample": 0.7823386527602171,
+  "colsample_bytree": 0.9386544732663078,
+  "reg_lambda": 0.8883381805305883
+ },
+ "decoder_params": {
+  "beta": 1.2783112279663746,
+  "emission_weight": 2.6225979199055103,
+  "dijkstra_cutoff": 1500.0,
+  "unreachable_logp": -43.25243870138592,
+  "backward_tolerance": 15.0
+ },
+ "evaluator_test_used": false
+}

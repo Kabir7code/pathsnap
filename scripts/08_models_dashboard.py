@@ -28,6 +28,13 @@ tvu = pd.read_csv(f"{R}/04_bayesian_optimisation/tuned_vs_untuned.csv")
 hmm = pd.read_csv(f"{R}/05_hmm_viterbi/hmm_summary.csv").set_index("decoder")
 conc = json.load(open(f"{R}/03_concurrent_training/run_summary.json"))
 final = json.load(open("models/final_model.json"))
+S6, S7 = f"{R}/08_final_model_selection", f"{R}/09_final_tuning_lightgbm_with_hmm"
+sel = pd.read_csv(f"{S6}/summary_three_models.csv").set_index(["split", "model"])
+pst = pd.concat([pd.read_csv(f"{S6}/paired_stats_lgbm_vs_rf.csv").query("decoder == 'own'").assign(comparison="Random Forest − LightGBM").rename(columns={"mean_RF_minus_LGBM": "mean_diff"}),
+                 pd.read_csv(f"{S6}/paired_stats_histgb_vs_others.csv").query("comparison == 'HistGB - LightGBM (tuned)'").assign(comparison="HistGB − LightGBM")])
+cost = json.load(open(f"{S6}/decision.json"))["probability_quality_and_cost"]
+tv7 = pd.read_csv(f"{S7}/tuned_vs_untuned_lightgbm.csv").set_index("variant")
+d7 = json.load(open(f"{S7}/decision_lightgbm.json"))
 cards = open(f"{R}/00_overview/model_cards.md").read().split("\n## ")[1:]
 card_by = {c.split("\n", 1)[0].strip(): c.split("\n", 1)[1] for c in cards}
 
@@ -83,7 +90,7 @@ figcaption {{ font-size:12px; color:var(--muted); padding-top:4px; }}
 @media (max-width:600px) {{ .grid {{ grid-template-columns:1fr; }} header {{ position:static; }} }}
 </style></head><body>
 <header><h1>Path<span>Snap</span>: all models</h1>
-<nav><a href="#summary">Summary</a><a href="#table">Comparison</a><a href="#plots">Plots</a><a href="#tuning">Bayesian tuning</a>
+<nav><a href="#summary">Summary</a><a href="#table">Comparison</a><a href="#plots">Plots</a><a href="#tuning">Bayesian tuning</a><a href="#selection">Final selection</a><a href="#finaltuning">Final tuning</a>
 <a href="#hmm">HMM</a><a href="#concurrent">Concurrent training</a><a href="#cards">Model cards</a></nav></header>
 <main>
 <section id="summary"><h2>Summary</h2><div class="kpis">
@@ -123,6 +130,25 @@ figcaption {{ font-size:12px; color:var(--muted); padding-top:4px; }}
 {"".join(f"<tr><td></td><td>{lab}</td><td>{hmm.loc['tuned','cls_'+k]:.4f}</td><td>{hmm.loc['default','hmm_'+k]:.4f}</td><td><b>{hmm.loc['tuned','hmm_'+k]:.4f}</b></td></tr>" for k, lab in [("top1","Point Top-1"),("route_precision","Route precision"),("route_recall","Route recall"),("route_f1","Route F1"),("continuity","Continuity")])}
 </tbody></table></div>
 <div class="grid">{img(f"{R}/05_hmm_viterbi/hmm_comparison.png", "Per trip: classifier only vs classifier + HMM")}</div></section>
+
+<section id="selection"><h2>Final model selection: LightGBM vs Random Forest vs HistGB (88 development trips)</h2>
+<p class="note">Complete systems (classifier + HMM) on 78 out-of-fold training trips + 10 student-test trips. Each model has its own tuned HMM decoder. Pre-declared rule: Top-1 after the HMM, then route F1 after the HMM (95% paired bootstrap CI must exclude 0), then log loss, speed and size. The evaluator-test trips were not used.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Model</th><th>Top-1 classifier</th><th>Top-1 + HMM</th><th>Route F1 classifier</th><th>Route F1 + HMM</th><th>Log loss (OOF)</th><th>ms/point</th><th>Model MB</th></tr></thead><tbody>
+{"".join(f"<tr{' class=best' if m.startswith('LightGBM') else ''}><td></td><td><b>{m}</b></td><td>{sel.loc[('all_88', m), 'cls_top1']:.4f}</td><td>{sel.loc[('all_88', m), 'hmm_top1']:.4f}</td><td>{sel.loc[('all_88', m), 'cls_route_f1']:.4f}</td><td>{sel.loc[('all_88', m), 'hmm_route_f1']:.4f}</td><td>{cost[m]['oof_log_loss']:.4f}</td><td>{cost[m]['test_infer_ms_per_point']:.4f}</td><td>{cost[m]['model_file_mb']:.2f}</td></tr>" for m in ["LightGBM (tuned)", "HistGB", "Random Forest"])}
+</tbody></table></div>
+<div class="tablewrap" style="margin-top:10px"><table><thead><tr><th></th><th>Comparison</th><th>Metric</th><th>Mean difference</th><th>95% CI</th><th>Significant?</th></tr></thead><tbody>
+{"".join(f"<tr><td></td><td>{r.comparison}</td><td>{r.metric}</td><td>{r.mean_diff:+.4f}</td><td>[{r.ci95_low:+.4f}, {r.ci95_high:+.4f}]</td><td>{'yes' if not (r.ci95_low <= 0 <= r.ci95_high) else 'no (tie)'}</td></tr>" for r in pst.itertuples())}
+</tbody></table></div>
+<p class="note"><b>Decision: LightGBM.</b> After the HMM all three are tied on Top-1. LightGBM is significantly better than Random Forest on route F1 after the HMM, significantly better than both before the HMM, and has the best-calibrated probabilities.</p>
+<div class="grid">{img(f"{S6}/three_models_before_after_hmm.png", "Top-1 before vs after HMM, three candidates")}{img(f"{S6}/lgbm_vs_rf_difference_ci.png", "Random Forest − LightGBM: paired differences with 95% CI")}{img(f"{S6}/lgbm_vs_rf_per_trip_scatter.png", "Per-trip comparison (above the line = RF better)")}</div></section>
+
+<section id="finaltuning"><h2>Final tuning: LightGBM with the HMM in the loop</h2>
+<p class="note">Optuna TPE, {d7['search']['trials']} trials. Objective: {html.escape(d7['search']['objective'])}. The new settings replace the deployed ones only if Top-1 after the HMM improves significantly over the 88 development trips.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Variant</th><th>CV macro F1</th><th>Test Top-1 (pooled)</th><th>Test log loss</th><th>Test Top-1 + HMM</th><th>88 trips Top-1 + HMM</th><th>88 trips route F1 + HMM</th></tr></thead><tbody>
+{"".join(f"<tr><td></td><td>{v}</td><td>{r.cv_macro_f1:.4f}</td><td>{r.test_top1:.4f}</td><td>{r.test_log_loss:.4f}</td><td>{r.test_hmm_top1_trip_mean:.4f}</td><td>{r.dev88_hmm_top1:.4f}</td><td>{r.dev88_hmm_route_f1:.4f}</td></tr>" for v, r in tv7.iterrows())}
+</tbody></table></div>
+<p class="note">Re-tuned − current, Top-1 + HMM over 88 trips: {d7['tuned_minus_untuned_dev88_hmm_top1']:+.4f}, 95% CI [{d7['ci95'][0]:+.4f}, {d7['ci95'][1]:+.4f}]. <b>Deployed: {html.escape(d7['deployed_variant'])}</b>.</p>
+<div class="grid">{img(f"{S7}/optuna_history_lightgbm.png", "Optimisation history (HMM objective)")}{img(f"{S7}/param_importance_lightgbm.png", "Hyperparameter importance")}{img(f"{S7}/tuned_vs_untuned_lightgbm.png", "Current vs re-tuned")}</div></section>
 
 <section id="concurrent"><h2>Concurrent training</h2>
 <p class="note">{conc['models']} models trained in parallel on {conc['workers']} worker processes: wall clock {conc['wall_clock_s']:.0f}s vs {conc['sum_of_model_times_s']:.0f}s if run one after another ({conc['speedup']:.1f}× speed-up). Results identical to the sequential run.</p>

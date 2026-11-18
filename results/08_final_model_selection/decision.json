@@ -1,0 +1,50 @@
+{
+ "winner": "LightGBM (tuned)",
+ "reason": "HMM Top-1 tied; secondary (HMM route F1) differs: RF\u2212LGBM = -0.0010 [-0.0016, -0.0005]",
+ "decision_rule": "(fixed before results are seen):\n  primary   = mean per-trip HMM Top-1 over the 88 development trips (each model with its own decoder)\n  if the 95% bootstrap CI of the paired difference contains 0 -> statistical tie ->\n  secondary = mean per-trip HMM route F1; if that CI also contains 0 ->\n  tertiary  = practical criteria: probability quality (log loss), inference speed, model size.",
+ "own_decoder_params": {
+  "LightGBM (tuned)": {
+   "beta": 1.2783112279663746,
+   "emission_weight": 2.6225979199055103,
+   "dijkstra_cutoff": 1500.0,
+   "unreachable_logp": -43.25243870138592,
+   "backward_tolerance": 15.0
+  },
+  "Random Forest": {
+   "beta": 1.3711678528536315,
+   "emission_weight": 3.2864166557567795,
+   "dijkstra_cutoff": 1500.0,
+   "unreachable_logp": -44.25365216008577,
+   "backward_tolerance": 15.0
+  },
+  "HistGB": {
+   "beta": 1.2783112279663746,
+   "emission_weight": 2.6225979199055103,
+   "dijkstra_cutoff": 1500.0,
+   "unreachable_logp": -43.25243870138592,
+   "backward_tolerance": 15.0
+  }
+ },
+ "probability_quality_and_cost": {
+  "LightGBM (tuned)": {
+   "oof_log_loss": 0.11096168610049727,
+   "test_log_loss": 0.10445013415497853,
+   "test_infer_ms_per_point": 0.040267877638464435,
+   "model_file_mb": 1.693039
+  },
+  "Random Forest": {
+   "oof_log_loss": 0.11599545338378449,
+   "test_log_loss": 0.11085882284337381,
+   "test_infer_ms_per_point": 0.02149868608765413,
+   "model_file_mb": 18.120816
+  },
+  "HistGB": {
+   "oof_log_loss": 0.11618822614862287,
+   "test_log_loss": 0.10839830978561081,
+   "test_infer_ms_per_point": 0.006669112685328983,
+   "model_file_mb": 0.192089
+  }
+ },
+ "runtime_s": 585.7578792572021,
+ "evaluator_test_used": false
+}

@@ -1,0 +1,28 @@
+[   30s] OOF done
+[  223s] decoder tuned {'beta': 1.278, 'emission_weight': 2.623, 'unreachable_logp': -43.252} 0.9306
+                               cls_top1  hmm_top1  cls_route_f1  hmm_route_f1  cls_continuity  hmm_continuity
+split        model                                                                                           
+student_test HistGB              0.8964    0.9492        0.7766        0.9579          0.9286          0.9781
+             LightGBM (tuned)    0.9017    0.9491        0.7865        0.9583          0.9329          0.9776
+             Random Forest       0.8937    0.9482        0.7650        0.9569          0.9254          0.9778
+train_oof    HistGB              0.8855    0.9326        0.7678        0.9390          0.9152          0.9698
+             LightGBM (tuned)    0.8868    0.9316        0.7750        0.9388          0.9181          0.9698
+             Random Forest       0.8822    0.9302        0.7581        0.9378          0.9122          0.9696
+all_88       HistGB              0.8867    0.9345        0.7688        0.9412          0.9167          0.9707
+             LightGBM (tuned)    0.8884    0.9336        0.7763        0.9410          0.9198          0.9707
+             Random Forest       0.8835    0.9322        0.7589        0.9400          0.9137          0.9705
+               comparison       metric  mean_diff  ci95_low  ci95_high  wilcoxon_p  HistGB_better  other_better
+HistGB - LightGBM (tuned)     hmm_top1     0.0009   -0.0008     0.0032      0.9713             41            39
+HistGB - LightGBM (tuned) hmm_route_f1     0.0002   -0.0004     0.0008      0.6081             30            29
+HistGB - LightGBM (tuned)     cls_top1    -0.0017   -0.0029    -0.0004      0.0001             27            56
+HistGB - LightGBM (tuned) cls_route_f1    -0.0075   -0.0111    -0.0039      0.0000             24            61
+   HistGB - Random Forest     hmm_top1     0.0022   -0.0006     0.0064      0.6486             42            38
+   HistGB - Random Forest hmm_route_f1     0.0012    0.0005     0.0020      0.0010             44            22
+   HistGB - Random Forest     cls_top1     0.0032    0.0016     0.0049      0.0000             61            24
+   HistGB - Random Forest cls_route_f1     0.0100    0.0052     0.0148      0.0000             64            22
+{
+ "oof_log_loss": 0.11618822614862287,
+ "test_log_loss": 0.10839830978561081,
+ "test_infer_ms_per_point": 0.006669112685328983,
+ "model_file_mb": 0.192089
+}

@@ -1,0 +1,51 @@
+[     3s] loading trips and road graphs
+[    26s] LightGBM (tuned) OOF fold 0
+[    32s] LightGBM (tuned) OOF fold 1
+[    40s] LightGBM (tuned) OOF fold 2
+[    46s] LightGBM (tuned) OOF fold 3
+[    53s] LightGBM (tuned) OOF fold 4
+[    78s] Random Forest OOF fold 0
+[   101s] Random Forest OOF fold 1
+[   125s] Random Forest OOF fold 2
+[   149s] Random Forest OOF fold 3
+[   174s] Random Forest OOF fold 4
+[   366s] LightGBM (tuned) decoder tuned: {'beta': 1.278, 'emission_weight': 2.623, 'unreachable_logp': -43.252} train top1 0.9295
+[   490s] Random Forest decoder tuned: {'beta': 1.371, 'emission_weight': 3.286, 'unreachable_logp': -44.254} train top1 0.9276
+[   537s] LightGBM (tuned) train_oof decoded
+[   550s] LightGBM (tuned) student_test decoded
+[   582s] Random Forest train_oof decoded
+[   586s] Random Forest student_test decoded
+/home/user/pathsnap/scripts/10_final_model_selection.py:213: PerformanceWarning: indexing past lexsort depth may impact performance.
+  s = summary.loc["own", split]
+/home/user/pathsnap/scripts/10_final_model_selection.py:213: PerformanceWarning: indexing past lexsort depth may impact performance.
+  s = summary.loc["own", split]
+/home/user/pathsnap/scripts/10_final_model_selection.py:213: PerformanceWarning: indexing past lexsort depth may impact performance.
+  s = summary.loc["own", split]
+[   587s] DONE
+                                           cls_top1  hmm_top1  cls_route_f1  hmm_route_f1  cls_continuity  hmm_continuity
+decoder split            model                                                                                           
+own     student_test     LightGBM (tuned)    0.9017    0.9491        0.7865        0.9583          0.9329          0.9776
+                         Random Forest       0.8937    0.9482        0.7650        0.9569          0.9254          0.9778
+        train_oof        LightGBM (tuned)    0.8868    0.9316        0.7750        0.9388          0.9181          0.9698
+                         Random Forest       0.8822    0.9302        0.7581        0.9378          0.9122          0.9696
+shared  student_test     LightGBM (tuned)    0.9017    0.9491        0.7865        0.9583          0.9329          0.9776
+                         Random Forest       0.8937    0.9493        0.7650        0.9577          0.9254          0.9775
+        train_oof        LightGBM (tuned)    0.8868    0.9316        0.7750        0.9388          0.9181          0.9698
+                         Random Forest       0.8822    0.9299        0.7581        0.9380          0.9122          0.9693
+own     all_88_dev_trips LightGBM (tuned)    0.8884    0.9336        0.7763        0.9410          0.9198          0.9707
+                         Random Forest       0.8835    0.9322        0.7589        0.9400          0.9137          0.9705
+shared  all_88_dev_trips LightGBM (tuned)    0.8884    0.9336        0.7763        0.9410          0.9198          0.9707
+                         Random Forest       0.8835    0.9321        0.7589        0.9403          0.9137          0.9702
+      metric decoder  n_trips  mean_RF_minus_LGBM  ci95_low  ci95_high  wilcoxon_p  RF_better_trips  LGBM_better_trips  ties
+    hmm_top1     own       88             -0.0014   -0.0038     0.0007      0.7224               35                 36    17
+    hmm_top1  shared       88             -0.0015   -0.0038     0.0004      0.2311               30                 41    17
+hmm_route_f1     own       88             -0.0010   -0.0016    -0.0005      0.0003               11                 38    39
+hmm_route_f1  shared       88             -0.0007   -0.0014    -0.0000      0.0084               15                 32    41
+    cls_top1     own       88             -0.0049   -0.0064    -0.0034      0.0000               15                 70     3
+    cls_top1  shared       88             -0.0049   -0.0064    -0.0034      0.0000               15                 70     3
+cls_route_f1     own       88             -0.0174   -0.0218    -0.0133      0.0000                9                 76     3
+cls_route_f1  shared       88             -0.0174   -0.0218    -0.0133      0.0000                9                 76     3
+{
+ "winner": "LightGBM (tuned)",
+ "reason": "HMM Top-1 tied; secondary (HMM route F1) differs: RF\u2212LGBM = -0.0010 [-0.0016, -0.0005]"
+}
