@@ -1,0 +1,64 @@
+oof fold 0
+oof fold 1
+oof fold 2
+oof fold 3
+oof fold 4
+tuning on 62 training trips
+[I 2026-11-18 04:41:39,014] A new study created in RDB with name: pathsnap_hmm
+hmm trial 0: top1=0.9256 routeF1=0.9334
+[I 2026-11-18 04:42:48,286] Trial 0 finished with value: 0.9256470951942719 and parameters: {'beta': 10.0, 'emission_weight': 1.0, 'unreachable_logp': -30.0}. Best is trial 0 with value: 0.9256470951942719.
+hmm trial 1: top1=0.9243 routeF1=0.9268
+[I 2026-11-18 04:42:53,293] Trial 1 finished with value: 0.9242802423539612 and parameters: {'beta': 5.6115164153345045, 'emission_weight': 2.8620000579477654, 'unreachable_logp': -19.740333200372717}. Best is trial 0 with value: 0.9256470951942719.
+hmm trial 2: top1=0.9239 routeF1=0.9319
+[I 2026-11-18 04:42:57,582] Trial 2 finished with value: 0.9239054490042171 and parameters: {'beta': 15.75132049977973, 'emission_weight': 0.6368521932388223, 'unreachable_logp': -51.42030138150886}. Best is trial 0 with value: 0.9256470951942719.
+hmm trial 3: top1=0.9289 routeF1=0.9364
+[I 2026-11-18 04:43:02,149] Trial 3 finished with value: 0.9288625708001471 and parameters: {'beta': 1.3066739238053278, 'emission_weight': 2.6252932081698184, 'unreachable_logp': -26.938674354123513}. Best is trial 3 with value: 0.9288625708001471.
+hmm trial 4: top1=0.9262 routeF1=0.9357
+[I 2026-11-18 04:43:06,853] Trial 4 finished with value: 0.9262036202113828 and parameters: {'beta': 26.070247583707673, 'emission_weight': 0.25763658402824685, 'unreachable_logp': -6.654958131090311}. Best is trial 3 with value: 0.9288625708001471.
+hmm trial 5: top1=0.9190 routeF1=0.9073
+[I 2026-11-18 04:43:11,763] Trial 5 finished with value: 0.9190383032618177 and parameters: {'beta': 46.22589001020831, 'emission_weight': 0.7945495098991733, 'unreachable_logp': -49.999626803609466}. Best is trial 3 with value: 0.9288625708001471.
+hmm trial 6: top1=0.9291 routeF1=0.9377
+[I 2026-11-18 04:43:16,558] Trial 6 finished with value: 0.9290802951821474 and parameters: {'beta': 1.203192921294997, 'emission_weight': 2.7410578922227637, 'unreachable_logp': -54.506784162523985}. Best is trial 6 with value: 0.9290802951821474.
+hmm trial 7: top1=0.9278 routeF1=0.9367
+[I 2026-11-18 04:43:21,212] Trial 7 finished with value: 0.9278238296670588 and parameters: {'beta': 1.547685165452724, 'emission_weight': 1.7663422768389585, 'unreachable_logp': -59.202197569681246}. Best is trial 6 with value: 0.9290802951821474.
+hmm trial 8: top1=0.9176 routeF1=0.9025
+[I 2026-11-18 04:43:26,020] Trial 8 finished with value: 0.9175827021147996 and parameters: {'beta': 40.820938570483285, 'emission_weight': 1.4087394705061533, 'unreachable_logp': -24.668974745365965}. Best is trial 6 with value: 0.9290802951821474.
+hmm trial 9: top1=0.9251 routeF1=0.9323
+[I 2026-11-18 04:43:31,096] Trial 9 finished with value: 0.9251078705184864 and parameters: {'beta': 1.8614195282710047, 'emission_weight': 0.8198596393724149, 'unreachable_logp': -7.972008677087352}. Best is trial 6 with value: 0.9290802951821474.
+hmm trial 10: top1=0.9120 routeF1=0.8736
+[I 2026-11-18 04:43:36,313] Trial 10 finished with value: 0.9119629004127626 and parameters: {'beta': 72.95164833080277, 'emission_weight': 2.2694101930334543, 'unreachable_logp': -54.30435933119793}. Best is trial 6 with value: 0.9290802951821474.
+hmm trial 11: top1=0.9295 routeF1=0.9377
+[I 2026-11-18 04:43:40,835] Trial 11 finished with value: 0.9294554974202156 and parameters: {'beta': 1.2783112279663746, 'emission_weight': 2.6225979199055103, 'unreachable_logp': -43.25243870138592}. Best is trial 11 with value: 0.9294554974202156.
+best decoder params {'beta': 1.2783112279663746, 'emission_weight': 2.6225979199055103, 'dijkstra_cutoff': 1500.0, 'unreachable_logp': -43.25243870138592, 'backward_tolerance': 15.0}
+00000000 default {'cls_top1': np.float64(0.9509), 'hmm_top1': np.float64(0.962), 'cls_continuity': 0.9684, 'hmm_continuity': 0.9948, 'decode_s': 0.2784, 'cls_route_precision': 0.6325, 'cls_route_recall': 1.0, 'cls_route_f1': 0.7749, 'hmm_route_precision': 0.8945, 'hmm_route_recall': 0.9944, 'hmm_route_f1': 0.9418}
+00000000 tuned {'cls_top1': np.float64(0.9509), 'hmm_top1': np.float64(0.9648), 'cls_continuity': 0.9684, 'hmm_continuity': 0.9948, 'decode_s': 0.08, 'cls_route_precision': 0.6325, 'cls_route_recall': 1.0, 'cls_route_f1': 0.7749, 'hmm_route_precision': 0.885, 'hmm_route_recall': 0.9888, 'hmm_route_f1': 0.934}
+00000007 default {'cls_top1': np.float64(0.952), 'hmm_top1': np.float64(0.969), 'cls_continuity': 0.997, 'hmm_continuity': 1.0, 'decode_s': 0.116, 'cls_route_precision': 0.9167, 'cls_route_recall': 0.9837, 'cls_route_f1': 0.949, 'hmm_route_precision': 0.9758, 'hmm_route_recall': 0.9837, 'hmm_route_f1': 0.9798}
+00000007 tuned {'cls_top1': np.float64(0.952), 'hmm_top1': np.float64(1.0), 'cls_continuity': 0.997, 'hmm_continuity': 1.0, 'decode_s': 0.0364, 'cls_route_precision': 0.9167, 'cls_route_recall': 0.9837, 'cls_route_f1': 0.949, 'hmm_route_precision': 1.0, 'hmm_route_recall': 0.9837, 'hmm_route_f1': 0.9918}
+00000009 default {'cls_top1': np.float64(0.8789), 'hmm_top1': np.float64(0.919), 'cls_continuity': 0.895, 'hmm_continuity': 0.9447, 'decode_s': 1.4465, 'cls_route_precision': 0.6605, 'cls_route_recall': 0.9977, 'cls_route_f1': 0.7948, 'hmm_route_precision': 0.8612, 'hmm_route_recall': 0.9837, 'hmm_route_f1': 0.9184}
+00000009 tuned {'cls_top1': np.float64(0.8789), 'hmm_top1': np.float64(0.918), 'cls_continuity': 0.895, 'hmm_continuity': 0.9447, 'decode_s': 0.0799, 'cls_route_precision': 0.6605, 'cls_route_recall': 0.9977, 'cls_route_f1': 0.7948, 'hmm_route_precision': 0.8665, 'hmm_route_recall': 0.9837, 'hmm_route_f1': 0.9214}
+00000040 default {'cls_top1': np.float64(0.9359), 'hmm_top1': np.float64(0.9516), 'cls_continuity': 0.9623, 'hmm_continuity': 0.9957, 'decode_s': 0.3216, 'cls_route_precision': 0.5811, 'cls_route_recall': 0.9968, 'cls_route_f1': 0.7342, 'hmm_route_precision': 0.9778, 'hmm_route_recall': 1.0, 'hmm_route_f1': 0.9888}
+00000040 tuned {'cls_top1': np.float64(0.9359), 'hmm_top1': np.float64(0.9449), 'cls_continuity': 0.9623, 'hmm_continuity': 0.9963, 'decode_s': 0.0895, 'cls_route_precision': 0.5811, 'cls_route_recall': 0.9968, 'cls_route_f1': 0.7342, 'hmm_route_precision': 0.9872, 'hmm_route_recall': 1.0, 'hmm_route_f1': 0.9936}
+00000052 default {'cls_top1': np.float64(0.9656), 'hmm_top1': np.float64(0.9924), 'cls_continuity': 0.9425, 'hmm_continuity': 0.9579, 'decode_s': 0.1101, 'cls_route_precision': 0.8455, 'cls_route_recall': 0.9789, 'cls_route_f1': 0.9073, 'hmm_route_precision': 1.0, 'hmm_route_recall': 0.9789, 'hmm_route_f1': 0.9894}
+00000052 tuned {'cls_top1': np.float64(0.9656), 'hmm_top1': np.float64(0.9962), 'cls_continuity': 0.9425, 'hmm_continuity': 0.9617, 'decode_s': 0.0155, 'cls_route_precision': 0.8455, 'cls_route_recall': 0.9789, 'cls_route_f1': 0.9073, 'hmm_route_precision': 1.0, 'hmm_route_recall': 0.9789, 'hmm_route_f1': 0.9894}
+00000056 default {'cls_top1': np.float64(0.9085), 'hmm_top1': np.float64(0.97), 'cls_continuity': 0.9025, 'hmm_continuity': 0.9661, 'decode_s': 1.76, 'cls_route_precision': 0.8147, 'cls_route_recall': 0.9878, 'cls_route_f1': 0.8929, 'hmm_route_precision': 0.9815, 'hmm_route_recall': 0.9953, 'hmm_route_f1': 0.9884}
+00000056 tuned {'cls_top1': np.float64(0.9085), 'hmm_top1': np.float64(0.9708), 'cls_continuity': 0.9025, 'hmm_continuity': 0.9664, 'decode_s': 0.2593, 'cls_route_precision': 0.8147, 'cls_route_recall': 0.9878, 'cls_route_f1': 0.8929, 'hmm_route_precision': 0.9806, 'hmm_route_recall': 0.9953, 'hmm_route_f1': 0.9879}
+00000065 default {'cls_top1': np.float64(0.875), 'hmm_top1': np.float64(0.8971), 'cls_continuity': 0.94, 'hmm_continuity': 0.9817, 'decode_s': 0.8077, 'cls_route_precision': 0.4677, 'cls_route_recall': 1.0, 'cls_route_f1': 0.6374, 'hmm_route_precision': 0.8056, 'hmm_route_recall': 1.0, 'hmm_route_f1': 0.8923}
+00000065 tuned {'cls_top1': np.float64(0.875), 'hmm_top1': np.float64(0.9128), 'cls_continuity': 0.94, 'hmm_continuity': 0.9817, 'decode_s': 0.0564, 'cls_route_precision': 0.4677, 'cls_route_recall': 1.0, 'cls_route_f1': 0.6374, 'hmm_route_precision': 0.8333, 'hmm_route_recall': 1.0, 'hmm_route_f1': 0.9091}
+00000076 default {'cls_top1': np.float64(0.9118), 'hmm_top1': np.float64(0.9637), 'cls_continuity': 0.9037, 'hmm_continuity': 0.9636, 'decode_s': 3.8347, 'cls_route_precision': 0.5262, 'cls_route_recall': 0.992, 'cls_route_f1': 0.6877, 'hmm_route_precision': 0.8585, 'hmm_route_recall': 0.9893, 'hmm_route_f1': 0.9193}
+00000076 tuned {'cls_top1': np.float64(0.9118), 'hmm_top1': np.float64(0.967), 'cls_continuity': 0.9037, 'hmm_continuity': 0.9677, 'decode_s': 0.1032, 'cls_route_precision': 0.5262, 'cls_route_recall': 0.992, 'cls_route_f1': 0.6877, 'hmm_route_precision': 0.8768, 'hmm_route_recall': 0.9893, 'hmm_route_f1': 0.9296}
+00000077 default {'cls_top1': np.float64(0.7481), 'hmm_top1': np.float64(0.8323), 'cls_continuity': 0.921, 'hmm_continuity': 0.9895, 'decode_s': 1.0037, 'cls_route_precision': 0.6381, 'cls_route_recall': 1.0, 'cls_route_f1': 0.7791, 'hmm_route_precision': 0.8508, 'hmm_route_recall': 1.0, 'hmm_route_f1': 0.9194}
+00000077 tuned {'cls_top1': np.float64(0.7481), 'hmm_top1': np.float64(0.8653), 'cls_continuity': 0.921, 'hmm_continuity': 0.9928, 'decode_s': 0.2348, 'cls_route_precision': 0.6381, 'cls_route_recall': 1.0, 'cls_route_f1': 0.7791, 'hmm_route_precision': 0.8816, 'hmm_route_recall': 1.0, 'hmm_route_f1': 0.9371}
+00000091 default {'cls_top1': np.float64(0.8902), 'hmm_top1': np.float64(0.9371), 'cls_continuity': 0.8969, 'hmm_continuity': 0.9691, 'decode_s': 0.6778, 'cls_route_precision': 0.5472, 'cls_route_recall': 1.0, 'cls_route_f1': 0.7073, 'hmm_route_precision': 0.9585, 'hmm_route_recall': 0.9957, 'hmm_route_f1': 0.9767}
+00000091 tuned {'cls_top1': np.float64(0.8902), 'hmm_top1': np.float64(0.9508), 'cls_continuity': 0.8969, 'hmm_continuity': 0.9702, 'decode_s': 0.0568, 'cls_route_precision': 0.5472, 'cls_route_recall': 1.0, 'cls_route_f1': 0.7073, 'hmm_route_precision': 0.983, 'hmm_route_recall': 0.9957, 'hmm_route_f1': 0.9893}
+decoder              default   tuned
+cls_top1              0.9017  0.9017
+hmm_top1              0.9394  0.9491
+cls_continuity        0.9329  0.9329
+hmm_continuity        0.9763  0.9776
+decode_s              1.0356  0.1012
+cls_route_precision   0.6630  0.6630
+cls_route_recall      0.9937  0.9937
+cls_route_f1          0.7865  0.7865
+hmm_route_precision   0.9164  0.9294
+hmm_route_recall      0.9921  0.9916
+hmm_route_f1          0.9514  0.9583
