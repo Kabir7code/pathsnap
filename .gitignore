@@ -10,3 +10,6 @@ REVIEW_PREP.md
 PROMPT_*.md
 pathsnap_code_snapshot.zip
 pathsnap.bundle
+
+# re-creatable model copies written by notebooks (deployed model is models/final.joblib)
+results/02_model_training/notebook_runs/*.joblib
