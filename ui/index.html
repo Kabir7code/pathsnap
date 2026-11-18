@@ -7,148 +7,410 @@
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <script src="vendor/leaflet/leaflet.js"></script>
 <style>
-  :root { --bg:#f6f7f9; --panel:#fff; --ink:#1d2330; --muted:#667085; --line:#e3e6ec; --accent:#d62728; }
-  * { box-sizing: border-box; }
-  body { margin:0; font:14px/1.4 system-ui, sans-serif; background:var(--bg); color:var(--ink); display:flex; height:100vh; }
-  aside { width:340px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; }
-  header { padding:14px 16px; border-bottom:1px solid var(--line); }
-  h1 { font-size:18px; margin:0 0 8px; }
-  .row { display:flex; gap:6px; }
-  input { flex:1; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; }
-  button { padding:6px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; font:inherit; }
-  button:hover { background:#f0f2f5; }
-  #status { color:var(--muted); font-size:12px; margin-top:6px; min-height:16px; }
-  #trips { overflow:auto; padding:8px; flex:0 0 auto; max-height:40vh; border-bottom:1px solid var(--line); }
-  .trip { display:flex; justify-content:space-between; width:100%; margin-bottom:4px; text-align:left; }
-  .trip.active { border-color:var(--accent); background:#fff3f3; }
-  .trip small { color:var(--muted); }
-  #results { padding:12px 16px; overflow:auto; flex:1; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th, td { padding:4px 6px; border-bottom:1px solid var(--line); text-align:right; }
+  :root {
+    --bg:#f4f5f7; --panel:#ffffff; --ink:#1b2130; --muted:#667085; --line:#e2e5eb;
+    --accent:#d62728; --accent-soft:#fdecec; --cls:#f28e1c; --gps:#1f5fd1;
+    --good:#16803c; --good-soft:#e7f6ec; --warn:#b54708; --bad:#b42318; --bad-soft:#fdecea;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink);
+         display:grid; grid-template-rows:auto 1fr; }
+  button { font:inherit; cursor:pointer; border:1px solid var(--line); background:#fff; border-radius:7px; padding:6px 11px; color:var(--ink); }
+  button:hover:not(:disabled) { background:#f0f2f5; }
+  button:disabled { opacity:.5; cursor:default; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.primary:hover:not(:disabled) { background:#b71f20; }
+  input { font:inherit; padding:6px 9px; border:1px solid var(--line); border-radius:7px; min-width:0; }
+
+  /* top bar */
+  .topbar { display:flex; align-items:center; gap:14px; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .brand { font-weight:700; font-size:17px; letter-spacing:.2px; }
+  .brand span { color:var(--accent); }
+  .conn { display:flex; gap:6px; flex:1; min-width:260px; max-width:520px; }
+  .conn input { flex:1; }
+  .pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:3px 9px; border-radius:999px; background:#eef0f3; color:var(--muted); white-space:nowrap; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#9aa1ad; }
+  .pill.ok { background:var(--good-soft); color:var(--good); } .pill.ok .dot { background:var(--good); }
+  .pill.err { background:var(--bad-soft); color:var(--bad); } .pill.err .dot { background:var(--bad); }
+  .meta { color:var(--muted); font-size:12px; }
+
+  /* layout */
+  .main { display:grid; grid-template-columns:330px 1fr 360px; min-height:0; }
+  .col { background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
+  .col.right { border-right:0; border-left:1px solid var(--line); }
+  .col h3 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:0; padding:12px 14px 8px; display:flex; justify-content:space-between; align-items:center; }
+  .scroll { overflow:auto; min-height:0; }
+  #mapwrap { position:relative; min-height:0; }
+  #map { position:absolute; inset:0; background:#e9ecef; }
+
+  /* trip list */
+  .actions { display:flex; gap:6px; padding:0 14px 10px; }
+  .actions button { flex:1; }
+  #trips { padding:0 10px 10px; }
+  .trip { width:100%; display:grid; grid-template-columns:1fr auto; gap:2px 8px; text-align:left; margin-bottom:6px; padding:8px 10px; }
+  .trip .id { font-weight:600; }
+  .trip .pts { color:var(--muted); font-size:12px; }
+  .trip .badge { grid-row:span 2; align-self:center; font-size:12px; font-weight:600; padding:3px 8px; border-radius:6px; background:#eef0f3; color:var(--muted); }
+  .badge.good { background:var(--good-soft); color:var(--good); }
+  .badge.mid { background:#fef4e6; color:var(--warn); }
+  .badge.low { background:var(--bad-soft); color:var(--bad); }
+  .badge.run { background:#e8efff; color:var(--gps); }
+  .trip.active { border-color:var(--accent); background:var(--accent-soft); }
+
+  /* results */
+  .section { padding:0 14px 14px; }
+  .cards { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .card { border:1px solid var(--line); border-radius:9px; padding:9px 10px; }
+  .card .label { font-size:12px; color:var(--muted); }
+  .card .val { font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .card .delta { font-size:12px; font-weight:600; }
+  .delta.up { color:var(--good); } .delta.down { color:var(--bad); }
+  table { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
+  th, td { padding:5px 6px; border-bottom:1px solid var(--line); text-align:right; }
+  th { font-size:12px; color:var(--muted); font-weight:600; }
   th:first-child, td:first-child { text-align:left; }
-  h2 { font-size:14px; margin:12px 0 6px; }
-  #map { flex:1; }
-  .legend { background:#fff; padding:6px 8px; border-radius:4px; font-size:12px; line-height:18px; }
-  .sw { display:inline-block; width:18px; height:4px; margin-right:6px; vertical-align:middle; }
-  @media (max-width: 760px) { body { flex-direction:column; } aside { width:100%; height:50vh; } }
+  tr.clickable { cursor:pointer; } tr.clickable:hover { background:#f6f7f9; }
+  tfoot td { font-weight:700; border-top:2px solid var(--line); }
+  .empty { color:var(--muted); padding:20px 14px; text-align:center; }
+  .bar { height:6px; background:#eef0f3; border-radius:3px; overflow:hidden; margin-top:3px; }
+  .bar > div { height:100%; background:var(--accent); }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:3px 10px; font-size:12px; }
+  .kv div:nth-child(odd) { color:var(--muted); }
+  .kv div:nth-child(even) { text-align:right; font-variant-numeric:tabular-nums; word-break:break-all; }
+  #log { font:12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding:0 14px 14px; }
+  #log div { border-bottom:1px dashed var(--line); padding:2px 0; }
+  #log .e { color:var(--bad); }
+  .tabs { display:flex; gap:4px; padding:10px 14px 0; border-bottom:1px solid var(--line); }
+  .tab { border:0; border-bottom:2px solid transparent; border-radius:0; padding:6px 8px; background:none; color:var(--muted); }
+  .tab.on { color:var(--ink); border-bottom-color:var(--accent); font-weight:600; }
+  .pane { display:none; } .pane.on { display:block; }
+
+  /* map overlays */
+  .legend { background:#fff; padding:7px 9px; border-radius:6px; font-size:12px; line-height:19px; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+  .sw { display:inline-block; width:20px; height:4px; margin-right:7px; vertical-align:middle; border-radius:2px; }
+  .busy { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,.55); z-index:1000; font-weight:600; }
+  .busy.on { display:flex; }
+  .spinner { width:22px; height:22px; border:3px solid #ddd; border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin-right:10px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  @media (max-width: 1100px) {
+    .main { grid-template-columns:300px 1fr; }
+    .col.right { grid-column:1 / -1; border-left:0; border-top:1px solid var(--line); max-height:none; }
+  }
+  @media (max-width: 720px) {
+    body { display:block; }
+    .main { display:block; }
+    #mapwrap { height:60vh; }
+    .col { border-right:0; }
+  }
 </style>
 </head>
 <body>
-<aside>
-  <header>
-    <h1>PathSnap Evaluator</h1>
-    <div class="row">
-      <input id="api" placeholder="API URL, e.g. http://192.168.1.10:8000">
-      <button id="connect">Connect</button>
+<div class="topbar">
+  <div class="brand">Path<span>Snap</span> Evaluator</div>
+  <div class="conn">
+    <input id="api" placeholder="API URL, e.g. http://192.168.1.10:8000" aria-label="API URL">
+    <button id="connect">Connect</button>
+  </div>
+  <span id="health" class="pill"><span class="dot"></span><span>Not connected</span></span>
+  <span id="modelinfo" class="meta"></span>
+</div>
+
+<div class="main">
+  <!-- left: trips -->
+  <div class="col">
+    <h3>Evaluation trips <span id="tripcount"></span></h3>
+    <div class="actions">
+      <button id="runall" class="primary" disabled>Run all trips</button>
+      <button id="export" disabled>Export CSV</button>
     </div>
-    <div id="status">Enter the API laptop's address and press Connect.</div>
-  </header>
-  <div id="trips"></div>
-  <div id="results"></div>
-</aside>
-<div id="map"></div>
+    <div id="trips" class="scroll"><div class="empty">Connect to the API to load trips.</div></div>
+  </div>
+
+  <!-- centre: map -->
+  <div id="mapwrap">
+    <div id="map"></div>
+    <div id="busy" class="busy"><div class="spinner"></div><span id="busytext">Running…</span></div>
+  </div>
+
+  <!-- right: results -->
+  <div class="col right">
+    <div class="tabs">
+      <button class="tab on" data-pane="p-trip">Trip result</button>
+      <button class="tab" data-pane="p-summary">All trips</button>
+      <button class="tab" data-pane="p-model">Model</button>
+      <button class="tab" data-pane="p-log">API log</button>
+    </div>
+    <div class="scroll" style="flex:1">
+      <div id="p-trip" class="pane on"><div class="empty">Select a trip to run it through the API.</div></div>
+      <div id="p-summary" class="pane"><div class="empty">Run trips to build the summary.</div></div>
+      <div id="p-model" class="pane"><div class="empty">Connect to see the model card.</div></div>
+      <div id="p-log" class="pane"><div id="log"></div></div>
+    </div>
+  </div>
+</div>
+
 <script>
 const $ = (id) => document.getElementById(id);
+const results = {};          // trip_id -> response (metrics + timing; routes only for last drawn)
+let trips = [], current = null, running = false;
+
+// ---------- settings ----------
 const params = new URLSearchParams(location.search);
 let saved = null;
 try { saved = localStorage.getItem("pathsnap_api"); } catch (e) {}
 $("api").value = params.get("api") || saved || "http://localhost:8000";
+const api = () => $("api").value.trim().replace(/\/+$/, "");
 
-const map = L.map("map").setView([55.75, 37.6], 11);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
-const groups = { gps: L.layerGroup(), cls: L.layerGroup(), hmm: L.layerGroup() };
-groups.gps.addTo(map); groups.hmm.addTo(map);
-L.control.layers(null, {
+// ---------- map ----------
+const map = L.map("map", { preferCanvas: true }).setView([20, 0], 2);
+const bases = {
+  "OpenStreetMap": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }),
+  "No basemap (offline)": L.layerGroup(),
+};
+bases["OpenStreetMap"].addTo(map);
+const groups = {
+  gps: L.layerGroup().addTo(map),
+  cls: L.layerGroup(),
+  hmm: L.layerGroup().addTo(map),
+  ends: L.layerGroup().addTo(map),
+};
+L.control.layers(bases, {
   "GPS observations": groups.gps,
   "Classifier-only route": groups.cls,
   "Predicted route (classifier + HMM)": groups.hmm,
+  "Start / end": groups.ends,
 }, { collapsed: false }).addTo(map);
+L.control.scale().addTo(map);
 const legend = L.control({ position: "bottomleft" });
 legend.onAdd = () => {
   const d = L.DomUtil.create("div", "legend");
-  d.innerHTML = '<div><span class="sw" style="background:#1f5fd1;height:8px;width:8px;border-radius:50%"></span>GPS observations</div>' +
-    '<div><span class="sw" style="background:#f28e1c"></span>Classifier-only route</div>' +
-    '<div><span class="sw" style="background:#d62728"></span>Predicted route (HMM)</div>';
+  d.innerHTML =
+    '<div><span class="sw" style="background:var(--gps);width:8px;height:8px;border-radius:50%;margin:0 13px 0 6px"></span>GPS observations</div>' +
+    '<div><span class="sw" style="background:var(--cls)"></span>Classifier-only route</div>' +
+    '<div><span class="sw" style="background:var(--accent)"></span>Predicted route (HMM)</div>' +
+    '<div><span class="sw" style="background:#16803c;width:10px;height:10px;border-radius:50%;margin:0 12px 0 5px"></span>Start &nbsp;<span class="sw" style="background:#111;width:10px;height:10px;border-radius:50%;margin:0 6px 0 5px"></span>End</div>';
   return d;
 };
 legend.addTo(map);
 
-const api = () => $("api").value.replace(/\/+$/, "");
+// ---------- helpers ----------
+const pct = (v) => (v == null ? "–" : (100 * v).toFixed(2) + "%");
+const num = (v, d = 3) => (v == null ? "–" : Number(v).toFixed(d));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function logLine(text, isErr = false) {
+  const d = document.createElement("div");
+  if (isErr) d.className = "e";
+  d.textContent = `${new Date().toLocaleTimeString()}  ${text}`;
+  $("log").prepend(d);
+}
+function setHealth(state, text) {
+  $("health").className = "pill" + (state ? " " + state : "");
+  $("health").lastElementChild.textContent = text;
+}
+function busy(on, text = "Running…") { $("busy").classList.toggle("on", on); $("busytext").textContent = text; }
+function badgeClass(v) { return v == null ? "" : v >= 0.93 ? "good" : v >= 0.85 ? "mid" : "low"; }
+function showTab(id) {
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.pane === id));
+  document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("on", p.id === id));
+}
+document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => showTab(t.dataset.pane)));
 
+async function call(method, path, body) {
+  const t0 = performance.now();
+  const res = await fetch(api() + path, {
+    method, headers: body ? { "Content-Type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const ms = Math.round(performance.now() - t0);
+  logLine(`${method} ${path}${body ? " " + JSON.stringify(body) : ""} → ${res.status} (${ms} ms)`, !res.ok);
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+// ---------- connect ----------
 async function connect() {
   try { localStorage.setItem("pathsnap_api", $("api").value); } catch (e) {}
-  $("status").textContent = "Connecting…";
+  setHealth("", "Connecting…");
   try {
-    const h = await (await fetch(api() + "/health")).json();
-    const r = await (await fetch(api() + "/trips")).json();
-    $("status").textContent = `Connected · model: ${h.model} · ${r.trips.length} trips`;
-    $("trips").innerHTML = "";
-    r.trips.forEach((t) => {
-      const b = document.createElement("button");
-      b.className = "trip";
-      b.innerHTML = `<span>Trip ${t.trip_id}</span><small>${t.gps_points} GPS points</small>`;
-      b.onclick = () => runTrip(t.trip_id, b);
-      $("trips").appendChild(b);
-    });
+    const h = await call("GET", "/health");
+    setHealth("ok", "API online");
+    try { renderModel(await call("GET", "/info")); }
+    catch (e) { $("modelinfo").textContent = `model: ${h.model}`; }
+    trips = (await call("GET", "/trips")).trips;
+    $("tripcount").textContent = `${trips.length}`;
+    renderTrips();
+    $("runall").disabled = trips.length === 0;
   } catch (e) {
-    $("status").textContent = "Could not reach API: " + e;
+    setHealth("err", "Unreachable");
+    logLine("Connection failed: " + e.message, true);
+    $("trips").innerHTML = `<div class="empty">Could not reach <b>${esc(api())}</b>.<br>Check the IP, that uvicorn runs with <code>--host 0.0.0.0</code>, the firewall (port 8000) and that both laptops share a network.</div>`;
   }
 }
 
-const pct = (v) => (v == null ? "–" : (100 * v).toFixed(2) + "%");
-
-async function runTrip(id, btn) {
-  document.querySelectorAll(".trip").forEach((b) => b.classList.remove("active"));
-  btn.classList.add("active");
-  $("status").textContent = `Running trip ${id} on the API…`;
-  $("results").innerHTML = "";
-  try {
-    const res = await fetch(api() + "/predict", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trip_id: id }),
-    });
-    if (!res.ok) throw new Error(res.status + " " + (await res.text()));
-    const d = await res.json();
-    draw(d);
-    showResults(d);
-    $("status").textContent = `Trip ${id} done in ${d.timing.total_s}s (server time)`;
-  } catch (e) {
-    $("status").textContent = "Request failed: " + e;
-  }
+function renderModel(info) {
+  $("modelinfo").textContent = `model: ${info.model} · trips from: ${info.eval_dir}`;
+  const kv = (o) => Object.entries(o).map(([k, v]) =>
+    `<div>${esc(k)}</div><div>${esc(typeof v === "number" ? +v.toFixed(4) : v)}</div>`).join("");
+  $("p-model").innerHTML = `<div class="section" style="padding-top:12px">
+      <h3 style="padding:0 0 6px">Classifier</h3>
+      <div class="kv"><div>algorithm</div><div>${esc(info.model)}</div>${kv(info.model_params)}
+        <div>Bayesian trials</div><div>${esc(info.bayes_trials ?? "–")}</div></div>
+      <h3 style="padding:14px 0 6px">Candidate generation</h3>
+      <div class="kv"><div>radius (m)</div><div>${info.candidate_radius_m}</div><div>max candidates</div><div>${info.max_candidates}</div></div>
+      <h3 style="padding:14px 0 6px">HMM / Viterbi decoder</h3>
+      <div class="kv">${kv(info.hmm_params)}</div>
+      <p class="meta" style="margin-top:14px">Reference routes stay on the API server. The UI receives only the GPS input, the predicted routes and aggregate metrics.</p>
+    </div>`;
 }
 
-function draw(d) {
-  Object.values(groups).forEach((g) => g.clearLayers());
-  const step = Math.max(1, Math.floor(d.gps.length / 3000));
-  d.gps.forEach((p, i) => {
-    if (i % step === 0) L.circleMarker(p, { radius: 2, color: "#1f5fd1", weight: 0, fillOpacity: 0.8 }).addTo(groups.gps);
+function renderTrips() {
+  $("trips").innerHTML = "";
+  trips.forEach((t) => {
+    const r = results[t.trip_id];
+    const v = r && r.metrics ? r.metrics.hmm_top1 : null;
+    const b = document.createElement("button");
+    b.className = "trip" + (current === t.trip_id ? " active" : "");
+    b.innerHTML = `<span class="id">Trip ${esc(t.trip_id)}</span>
+      <span class="badge ${r === "running" ? "run" : badgeClass(v)}">${r === "running" ? "running…" : v != null ? pct(v) : "not run"}</span>
+      <span class="pts">${t.gps_points} GPS points${r && r.timing ? " · " + r.timing.total_s + " s" : ""}</span>`;
+    b.disabled = running;
+    b.onclick = () => runTrip(t.trip_id, true);
+    $("trips").appendChild(b);
   });
-  d.classifier_only_route.forEach((l) => L.polyline(l, { color: "#f28e1c", weight: 3, dashArray: "6 6" }).addTo(groups.cls));
-  d.predicted_route.forEach((l) => L.polyline(l, { color: "#d62728", weight: 4 }).addTo(groups.hmm));
-  map.fitBounds(L.latLngBounds(d.gps), { padding: [20, 20] });
 }
 
-function showResults(d) {
-  const m = d.metrics;
-  let html = `<h2>Trip ${d.trip_id} · ${d.model}</h2>`;
-  if (m) {
-    html += `<table><tr><th>Metric</th><th>Classifier</th><th>+ HMM</th></tr>
-      <tr><td>Point Top-1 accuracy</td><td>${pct(m.cls_top1)}</td><td><b>${pct(m.hmm_top1)}</b></td></tr>
-      <tr><td>Route precision</td><td>${pct(m.cls_route_precision)}</td><td>${pct(m.hmm_route_precision)}</td></tr>
-      <tr><td>Route recall</td><td>${pct(m.cls_route_recall)}</td><td>${pct(m.hmm_route_recall)}</td></tr>
-      <tr><td>Route F1</td><td>${pct(m.cls_route_f1)}</td><td><b>${pct(m.hmm_route_f1)}</b></td></tr>
-      <tr><td>Route continuity</td><td>${pct(m.cls_continuity)}</td><td>${pct(m.hmm_continuity)}</td></tr>
-      </table><p style="color:#667085;font-size:12px">${m.labelled} of ${m.points} GPS points scored (computed server-side).</p>`;
-  } else {
-    html += "<p>No reference route available on the server for this trip.</p>";
+// ---------- run ----------
+async function runTrip(id, draw) {
+  current = id; results[id] = results[id] && results[id] !== "running" ? results[id] : "running";
+  renderTrips();
+  busy(true, `Running trip ${id} on the API…`);
+  try {
+    const d = await call("POST", "/predict", { trip_id: id });
+    results[id] = { metrics: d.metrics, timing: d.timing, hmm_stats: d.hmm_stats, n_arcs: d.predicted_route_arc_ids.length, gps_points: d.gps.length };
+    if (draw) { drawTrip(d); renderTrip(d); showTab("p-trip"); }
+    return d;
+  } catch (e) {
+    results[id] = undefined;
+    if (draw) $("p-trip").innerHTML = `<div class="empty" style="color:var(--bad)">Request failed: ${esc(e.message)}</div>`;
+    throw e;
+  } finally {
+    busy(false); renderTrips(); renderSummary();
   }
-  html += `<h2>Timing (s)</h2><table>${Object.entries(d.timing).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}</table>`;
-  html += `<p style="color:#667085;font-size:12px">Predicted route: ${d.predicted_route_arc_ids.length} arcs</p>`;
-  $("results").innerHTML = html;
+}
+
+async function runAll() {
+  running = true; $("runall").disabled = true; renderTrips();
+  let last = null;
+  for (let i = 0; i < trips.length; i++) {
+    busy(true, `Running trip ${i + 1} / ${trips.length}…`);
+    try { last = await runTrip(trips[i].trip_id, false); } catch (e) { /* logged */ }
+  }
+  running = false; $("runall").disabled = false;
+  if (last) { drawTrip(last); renderTrip(last); }
+  renderTrips(); renderSummary(); showTab("p-summary");
+}
+
+// ---------- drawing ----------
+function drawTrip(d) {
+  Object.values(groups).forEach((g) => g.clearLayers());
+  const step = Math.max(1, Math.floor(d.gps.length / 4000));
+  d.gps.forEach((p, i) => {
+    if (i % step === 0) L.circleMarker(p, { radius: 2.2, color: "#1f5fd1", weight: 0, fillOpacity: .75 })
+      .bindTooltip(`GPS #${i}`).addTo(groups.gps);
+  });
+  d.classifier_only_route.forEach((l) => L.polyline(l, { color: "#f28e1c", weight: 3, dashArray: "6 6", opacity: .9 }).addTo(groups.cls));
+  d.predicted_route.forEach((l) => L.polyline(l, { color: "#d62728", weight: 4.5, opacity: .9 }).addTo(groups.hmm));
+  const s = d.gps[0], e = d.gps[d.gps.length - 1];
+  L.circleMarker(s, { radius: 7, color: "#fff", weight: 2, fillColor: "#16803c", fillOpacity: 1 }).bindTooltip("Start").addTo(groups.ends);
+  L.circleMarker(e, { radius: 7, color: "#fff", weight: 2, fillColor: "#111", fillOpacity: 1 }).bindTooltip("End").addTo(groups.ends);
+  map.fitBounds(L.latLngBounds(d.gps), { padding: [24, 24] });
+}
+
+function card(label, cls, hmm) {
+  const delta = hmm != null && cls != null ? hmm - cls : null;
+  return `<div class="card"><div class="label">${label}</div><div class="val">${pct(hmm)}</div>
+    <div class="delta ${delta >= 0 ? "up" : "down"}">${delta == null ? "" : (delta >= 0 ? "▲ +" : "▼ ") + (100 * delta).toFixed(2) + " pts vs classifier"}</div></div>`;
+}
+
+function renderTrip(d) {
+  const m = d.metrics, t = d.timing;
+  let html = `<div class="section" style="padding-top:12px"><h3 style="padding:0 0 8px">Trip ${esc(d.trip_id)}</h3>`;
+  if (m) {
+    html += `<div class="cards">
+        ${card("Point Top-1 (HMM)", m.cls_top1, m.hmm_top1)}
+        ${card("Route F1 (HMM)", m.cls_route_f1, m.hmm_route_f1)}
+        ${card("Route precision (HMM)", m.cls_route_precision, m.hmm_route_precision)}
+        ${card("Continuity (HMM)", m.cls_continuity, m.hmm_continuity)}
+      </div>
+      <table style="margin-top:12px"><tr><th>Metric</th><th>Classifier</th><th>+ HMM</th></tr>
+        <tr><td>Point Top-1 accuracy</td><td>${pct(m.cls_top1)}</td><td><b>${pct(m.hmm_top1)}</b></td></tr>
+        <tr><td>Route precision</td><td>${pct(m.cls_route_precision)}</td><td>${pct(m.hmm_route_precision)}</td></tr>
+        <tr><td>Route recall</td><td>${pct(m.cls_route_recall)}</td><td>${pct(m.hmm_route_recall)}</td></tr>
+        <tr><td>Route F1</td><td>${pct(m.cls_route_f1)}</td><td><b>${pct(m.hmm_route_f1)}</b></td></tr>
+        <tr><td>Route continuity</td><td>${pct(m.cls_continuity)}</td><td>${pct(m.hmm_continuity)}</td></tr>
+      </table>
+      <p class="meta">${m.labelled} of ${m.points} GPS points scored. Metrics are computed on the API server against its hidden reference route.</p>`;
+  } else {
+    html += `<p class="meta">The server has no reference route for this trip, so only the prediction is shown.</p>`;
+  }
+  const total = t.total_s || 1;
+  html += `<h3 style="padding:10px 0 6px">Server timing</h3><table>` +
+    Object.entries(t).filter(([k]) => k !== "total_s").map(([k, v]) =>
+      `<tr><td>${esc(k.replace(/_s$/, ""))}<div class="bar"><div style="width:${(100 * v / total).toFixed(1)}%"></div></div></td><td>${num(v)} s</td></tr>`).join("") +
+    `<tfoot><tr><td>total</td><td>${num(t.total_s)} s</td></tr></tfoot></table>`;
+  const hs = d.hmm_stats || {};
+  html += `<h3 style="padding:10px 0 6px">Decoder</h3><div class="kv">
+      <div>predicted route arcs</div><div>${d.predicted_route_arc_ids.length}</div>
+      <div>transition pairs scored</div><div>${hs.pairs ?? "–"}</div>
+      <div>unreachable pairs</div><div>${hs.unreachable_pairs ?? "–"}</div>
+      <div>gap restarts (uniform steps)</div><div>${hs.uniform_steps ?? "–"}</div></div></div>`;
+  $("p-trip").innerHTML = html;
+}
+
+function renderSummary() {
+  const done = trips.filter((t) => results[t.trip_id] && results[t.trip_id].metrics);
+  $("export").disabled = done.length === 0;
+  if (!done.length) return;
+  const keys = ["cls_top1", "hmm_top1", "cls_route_f1", "hmm_route_f1", "hmm_continuity"];
+  const mean = (k) => done.reduce((s, t) => s + results[t.trip_id].metrics[k], 0) / done.length;
+  const meanT = done.reduce((s, t) => s + results[t.trip_id].timing.total_s, 0) / done.length;
+  let html = `<div class="section" style="padding-top:12px">
+    <h3 style="padding:0 0 8px">${done.length} of ${trips.length} trips evaluated</h3>
+    <div class="cards">${card("Mean point Top-1 (HMM)", mean("cls_top1"), mean("hmm_top1"))}${card("Mean route F1 (HMM)", mean("cls_route_f1"), mean("hmm_route_f1"))}</div>
+    <table style="margin-top:12px"><tr><th>Trip</th><th>Top-1<br>cls</th><th>Top-1<br>HMM</th><th>Route F1<br>HMM</th><th>Cont.<br>HMM</th><th>Time s</th></tr>`;
+  done.forEach((t) => {
+    const m = results[t.trip_id].metrics;
+    html += `<tr class="clickable" data-trip="${esc(t.trip_id)}"><td>${esc(t.trip_id)}</td><td>${pct(m.cls_top1)}</td><td><b>${pct(m.hmm_top1)}</b></td>
+      <td>${pct(m.hmm_route_f1)}</td><td>${pct(m.hmm_continuity)}</td><td>${num(results[t.trip_id].timing.total_s, 2)}</td></tr>`;
+  });
+  html += `<tfoot><tr><td>Mean</td>${keys.slice(0, 2).map((k) => `<td>${pct(mean(k))}</td>`).join("")}
+    <td>${pct(mean("hmm_route_f1"))}</td><td>${pct(mean("hmm_continuity"))}</td><td>${num(meanT, 2)}</td></tr></tfoot></table>
+    <p class="meta">Means are averaged per trip. Click a row to draw that trip.</p></div>`;
+  $("p-summary").innerHTML = html;
+  $("p-summary").querySelectorAll("tr.clickable").forEach((tr) => (tr.onclick = () => runTrip(tr.dataset.trip, true)));
+}
+
+function exportCSV() {
+  const cols = ["cls_top1", "hmm_top1", "cls_route_precision", "hmm_route_precision", "cls_route_recall", "hmm_route_recall",
+                "cls_route_f1", "hmm_route_f1", "cls_continuity", "hmm_continuity", "points", "labelled"];
+  const rows = [["trip_id", ...cols, "total_s"].join(",")];
+  trips.forEach((t) => {
+    const r = results[t.trip_id];
+    if (r && r.metrics) rows.push([t.trip_id, ...cols.map((c) => r.metrics[c]), r.timing.total_s].join(","));
+  });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv" }));
+  a.download = "pathsnap_results.csv";
+  a.click();
 }
 
 $("connect").onclick = connect;
+$("api").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
+$("runall").onclick = runAll;
+$("export").onclick = exportCSV;
 connect();
 </script>
 </body>
