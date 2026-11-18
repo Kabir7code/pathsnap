@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+artifacts/features_*.parquet
+artifacts/points_*.parquet
+# raw dataset is distributed by the organisers; evaluator trips must never be committed
+data/
+eval_data/
+REVIEW_PREP.md
+PROMPT_*.md
+pathsnap_code_snapshot.zip
