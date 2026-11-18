@@ -1,0 +1,139 @@
+train 00000001
+train 00000002
+train 00000003
+train 00000004
+train 00000005
+train 00000006
+train 00000008
+train 00000010
+train 00000011
+train 00000012
+train 00000013
+train 00000014
+train 00000016
+train 00000018
+train 00000019
+train 00000020
+train 00000021
+train 00000022
+train 00000024
+train 00000025
+train 00000026
+train 00000027
+train 00000028
+train 00000029
+train 00000031
+train 00000032
+train 00000033
+train 00000034
+train 00000035
+train 00000036
+train 00000037
+train 00000038
+train 00000039
+train 00000041
+train 00000042
+train 00000043
+train 00000044
+train 00000045
+train 00000046
+train 00000047
+train 00000048
+train 00000050
+train 00000051
+train 00000053
+train 00000054
+train 00000055
+train 00000057
+train 00000058
+train 00000060
+train 00000061
+train 00000062
+train 00000063
+train 00000064
+train 00000066
+train 00000068
+train 00000069
+train 00000070
+train 00000071
+train 00000072
+train 00000074
+train 00000075
+train 00000078
+train 00000079
+train 00000080
+train 00000081
+train 00000082
+train 00000083
+train 00000084
+train 00000085
+train 00000086
+train 00000088
+train 00000089
+train 00000090
+train 00000092
+train 00000093
+train 00000095
+train 00000096
+train 00000097
+train 00000098
+train 00000099
+student_test 00000000
+student_test 00000007
+student_test 00000009
+student_test 00000040
+student_test 00000052
+student_test 00000056
+student_test 00000065
+student_test 00000076
+student_test 00000077
+student_test 00000091
+== student_test: 10 trips
+        points  duration_s  path_km  dt_max  frac_dt_1s  gaps_over_10s  route_arcs  route_km
+count    10.00       10.00    10.00   10.00       10.00          10.00       10.00     10.00
+mean   1916.00     2025.00    29.70   25.50        0.98           2.70      347.70     24.77
+std    1335.43     1311.67    22.84   65.53        0.04           7.54      359.57     21.23
+min     262.00      265.00     5.55    1.00        0.86           0.00       95.00      5.28
+25%     917.75     1040.00    12.17    1.00        0.99           0.00      153.50      9.86
+50%    1420.00     1809.50    20.94    2.00        1.00           0.00      250.00     14.73
+75%    2872.00     2871.25    48.41    2.75        1.00           0.00      357.75     40.19
+max    3958.00     4000.00    71.72  210.00        1.00          24.00     1323.00     64.76
+           nodes      arcs  isolated_nodes  weak_components  strong_components  largest_strong_frac  two_way_frac
+count     10.000     10.00            10.0           10.000             10.000               10.000        10.000
+mean    9068.900  18504.10             0.0           22.700             97.400                0.942         0.927
+std     7452.176  15496.93             0.0           29.182            125.957                0.054         0.057
+min     1770.000   3577.00             0.0            5.000              6.000                0.817         0.855
+25%     4908.000  10292.25             0.0            7.250             21.750                0.947         0.875
+50%     6596.500  13145.00             0.0           11.000             53.500                0.961         0.933
+75%    11844.250  24818.50             0.0           21.750             94.750                0.972         0.976
+max    26635.000  56027.00             0.0          100.000            415.000                0.984         0.996
+missing files: 0
+NaN values in tracks: 0, non-monotonic timestamps: 0, out-of-range coords: 0
+trips with disconnected reference-route steps: 1
+GPS->nearest arc distance (m) percentiles 50/90/99: [ 4.5 12.8 26.6]; share > 50 m: 0.0000
+
+== train: 80 trips
+         points  duration_s  path_km     dt_max  frac_dt_1s  gaps_over_10s  route_arcs  route_km
+count     80.00       80.00    80.00      80.00       80.00          80.00       80.00     80.00
+mean    2605.21     5680.40    37.23    2706.40        0.94           7.38      391.70     27.83
+std     3312.35    18252.16    34.50   18017.45        0.12          26.33      361.17     25.69
+min      361.00      451.00     6.33       1.00        0.53           0.00       59.00      5.00
+25%      945.75     1225.30    12.78       1.75        0.96           0.00      168.25      8.91
+50%     1529.00     1710.00    24.07      11.00        0.99           0.50      280.00     14.30
+75%     2792.75     3765.00    48.72      73.75        1.00           5.00      480.50     39.39
+max    19313.00   154030.00   169.16  153064.00        1.00         215.00     2266.00     94.22
+            nodes        arcs  isolated_nodes  weak_components  strong_components  largest_strong_frac  two_way_frac
+count      80.000      80.000            80.0           80.000             80.000               80.000        80.000
+mean    24168.562   48461.300             0.0           39.012            250.475                0.950         0.922
+std     32272.296   64738.837             0.0           60.682            343.237                0.057         0.095
+min       299.000     649.000             0.0            1.000              2.000                0.636         0.351
+25%      3487.750    7061.750             0.0            9.750             15.500                0.938         0.898
+50%      9608.000   19526.500             0.0           20.000            127.000                0.964         0.951
+75%     28846.750   58003.250             0.0           42.250            328.500                0.982         0.984
+max    155003.000  307392.000             0.0          421.000           1942.000                1.000         1.000
+missing files: 0
+NaN values in tracks: 0, non-monotonic timestamps: 0, out-of-range coords: 0
+trips with disconnected reference-route steps: 10
+GPS->nearest arc distance (m) percentiles 50/90/99: [ 4.9 26.9 96.9]; share > 50 m: 0.0874
+
+
