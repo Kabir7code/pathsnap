@@ -2,7 +2,25 @@
 
 There are 8 notebooks, split so that **Laptop A runs 01–04** and **Laptop B runs 05–08**. Each one runs on its own: you don't need to run the others first.
 
-## Before running (both laptops)
+## Run on Google Colab (no install needed)
+1. Upload **`Student_folder.zip`** (the dataset) to your Google Drive, in **My Drive**.
+2. Click a link below, then in Colab choose **Runtime → Run all**. Allow Drive access when asked, or upload the zip when prompted.
+3. The first cell clones the repo, installs `optuna` and the other packages, and unpacks the dataset. Expect about 1–2 minutes.
+
+| Laptop | Notebook |
+|---|---|
+| A | [01 EDA & preprocessing](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/01_EDA_and_preprocessing.ipynb) |
+| A | [02 Logistic Regression & Naive Bayes](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/02_Logistic_Regression_and_Naive_Bayes.ipynb) |
+| A | [03 KNN](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/03_KNN.ipynb) |
+| A | [04 Decision Tree, Random Forest, Extra Trees](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/04_Decision_Tree_Random_Forest_Extra_Trees.ipynb) |
+| B | [05 HistGB & LightGBM](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/05_HistGradientBoosting_and_LightGBM.ipynb) |
+| B | [06 MLP](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/06_MLP_Neural_Network.ipynb) |
+| B | [07 Bayesian optimisation](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/07_Bayesian_Hyperparameter_Optimisation.ipynb) |
+| B | [08 HMM/Viterbi & final comparison](https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/08_HMM_Viterbi_and_Final_Comparison.ipynb) |
+
+Free Colab has only 2 CPU cores, so runtimes are roughly **twice** the figures below. KNN (03) and Bayesian optimisation (07) are the slowest, at about 20–40 min each on Colab.
+
+## Run locally (both laptops)
 1. Get the repo (`git pull`), or unzip `pathsnap_notebooks.zip` into the repo root so the `notebooks/` folder sits next to `pathsnap/`.
 2. Put the dataset at `data/train/<id>/` and `data/student_test/<id>/`.
 3. Install the requirements, then start Jupyter from the **repo root**:
