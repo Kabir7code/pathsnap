@@ -1,0 +1,27 @@
+training 9 models concurrently on 4 worker processes
+[    6.3s] done gnb        pid=519 took 5.4s | test top1=0.8490 F1=0.8250 ll=0.5074
+[    7.7s] done logreg     pid=518 took 6.9s | test top1=0.8621 F1=0.9034 ll=0.1510
+[   20.6s] done dtree      pid=521 took 19.8s | test top1=0.8756 F1=0.9224 ll=0.1293
+[   52.0s] done histgb     pid=521 took 31.4s | test top1=0.8796 F1=0.9241 ll=0.1079
+[  130.9s] done lightgbm   pid=521 took 78.9s | test top1=0.8871 F1=0.9283 ll=0.1039
+[  153.1s] done extratrees pid=518 took 145.3s | test top1=0.8552 F1=0.9158 ll=0.1400
+[  398.9s] done mlp        pid=521 took 268.0s | test top1=0.8807 F1=0.9216 ll=0.1134
+[  546.3s] done rf         pid=519 took 540.0s | test top1=0.8777 F1=0.9224 ll=0.1105
+[  754.6s] done knn        pid=520 took 753.7s | test top1=0.8577 F1=0.9124 ll=0.1811
+     model                 family  cv_macro_f1  cv_macro_f1_std  cv_top1  cv_log_loss  test_top1  test_macro_f1  test_precision  test_recall  test_log_loss  test_continuity   fit_s  infer_ms_per_point  worker_pid  duration_s
+  lightgbm               Boosting       0.9277           0.0153   0.8837       0.1118     0.8871         0.9283          0.8925       0.8684         0.1039           0.9339  8.6646              0.1289         521     78.9161
+    histgb               Boosting       0.9270           0.0148   0.8821       0.1145     0.8796         0.9241          0.8769       0.8701         0.1079           0.9285  3.5313              0.0227         521     31.3815
+        rf     Ensemble (bagging)       0.9246           0.0163   0.8797       0.1158     0.8777         0.9224          0.9002       0.8417         0.1105           0.9253 83.5954              0.0831         519    539.9779
+     dtree             Tree-based       0.9230           0.0160   0.8770       0.1421     0.8756         0.9224          0.8753       0.8662         0.1293           0.9231  2.4803              0.0005         521     19.7943
+       mlp         Neural network       0.9224           0.0156   0.8756       0.1269     0.8807         0.9216          0.8909       0.8478         0.1134           0.9310 37.0127              0.0050         521    267.9643
+extratrees     Ensemble (bagging)       0.9176           0.0170   0.8657       0.1397     0.8552         0.9158          0.9022       0.8190         0.1400           0.9060 22.3011              0.0787         518    145.3401
+       knn         Instance-based       0.9138           0.0167   0.8660       0.2067     0.8577         0.9124          0.8676       0.8404         0.1811           0.9146  0.1546              3.8920         520    753.7317
+    logreg Linear / probabilistic       0.9042           0.0186   0.8703       0.1585     0.8621         0.9034          0.8372       0.8416         0.1510           0.9188  0.6764              0.0006         518      6.8904
+       gnb Linear / probabilistic       0.8380           0.0200   0.8552       0.4652     0.8490         0.8250          0.6067       0.8931         0.5074           0.9034  0.1516              0.0014         519      5.4350
+{
+ "models": 9,
+ "workers": 4,
+ "wall_clock_s": 754.6236898899078,
+ "sum_of_model_times_s": 1849.431257724762,
+ "speedup": 2.450799361990048
+}

@@ -28,6 +28,7 @@ scripts/
   00_eda.py              dataset exploration -> results/eda/
   01_build_dataset.py    candidates + features + labels -> artifacts/*.parquet
   02_train_models.py     train & compare all models -> results/model_comparison.csv
+  02b_train_concurrent.py  same protocol, all 9 models trained concurrently in parallel worker processes -> results/concurrent/
   03_bayes_opt.py        Optuna TPE search for the chosen model -> artifacts/models/final.joblib
   04_hmm_eval.py         decoder tuning + classifier vs classifier+HMM -> results/hmm_*.csv
   05_folium_maps.py      interactive maps -> maps/*.html
@@ -56,6 +57,7 @@ Run the scripts in order from the repository root:
 python scripts/00_eda.py
 python scripts/01_build_dataset.py
 python scripts/02_train_models.py
+python scripts/02b_train_concurrent.py --workers 4   # concurrent version (all 9 models in parallel)
 python scripts/03_bayes_opt.py --model lightgbm --trials 30
 python scripts/04_hmm_eval.py --trials 25
 python scripts/05_folium_maps.py --split student_test

@@ -1,0 +1,7 @@
+{
+ "models": 9,
+ "workers": 4,
+ "wall_clock_s": 754.6236898899078,
+ "sum_of_model_times_s": 1849.431257724762,
+ "speedup": 2.450799361990048
+}
