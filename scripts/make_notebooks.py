@@ -7,6 +7,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "notebooks")
 os.makedirs(OUT, exist_ok=True)
 
+COLAB = '# ── Google Colab setup ── (skipped automatically when running locally)\nimport os, sys, shutil, subprocess, zipfile\nif "google.colab" in sys.modules:\n    REPO = "/content/pathsnap"\n    if not os.path.exists(REPO):\n        subprocess.run(["git", "clone", "-q", "https://github.com/Kabir7code/pathsnap.git", REPO], check=True)\n    os.chdir(REPO)\n    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "optuna", "lightgbm", "folium", "pyarrow"], check=True)\n    if not (os.path.isdir("data/train") and os.path.isdir("data/student_test")):\n        # 1) put Student_folder.zip in your Google Drive (MyDrive) -- or 2) upload it when asked\n        DATA_ZIP = "/content/drive/MyDrive/Student_folder.zip"\n        try:\n            from google.colab import drive\n            drive.mount("/content/drive")\n        except Exception as e:\n            print("Drive not mounted:", e)\n        if not os.path.exists(DATA_ZIP):\n            from google.colab import files\n            print("Student_folder.zip not found in Drive. Please upload it:")\n            DATA_ZIP = "/content/" + list(files.upload())[0]\n        raw = "/content/_raw"\n        shutil.rmtree(raw, ignore_errors=True)\n        zipfile.ZipFile(DATA_ZIP).extractall(raw)\n        src = next(d for d, sub, _ in os.walk(raw) if "train" in sub and "student_test" in sub)\n        os.makedirs("data", exist_ok=True)\n        for part in ("train", "student_test"):\n            shutil.move(os.path.join(src, part), os.path.join("data", part))\n    print("Colab ready:", os.getcwd(), "| train trips:", len(os.listdir("data/train")),\n          "| student_test trips:", len(os.listdir("data/student_test")))'
+
 SETUP = """import os, sys, warnings
 # run from notebooks/ or from the repo root
 ROOT = os.path.abspath("..") if os.path.basename(os.getcwd()) == "notebooks" else os.getcwd()
@@ -34,7 +36,8 @@ def code(s):
 
 def write(name, cells):
     n = nbf.v4.new_notebook()
-    n.cells = cells
+    cells[0].source = cells[0].source.replace("{FILE}", name)
+    n.cells = [cells[0], md("**On Google Colab:** run the next cell first. It clones the repo, installs packages and loads `Student_folder.zip` from your Google Drive (`MyDrive/Student_folder.zip`) or asks you to upload it. Locally it does nothing."), code(COLAB)] + cells[1:]
     n.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
     nbf.write(n, os.path.join(OUT, name))
     print("wrote", name)
@@ -91,8 +94,13 @@ pd.DataFrame(rows).set_index("model").round(4)"""),
     ]
 
 
+COLAB_URL = "https://colab.research.google.com/github/Kabir7code/pathsnap/blob/main/notebooks/"
+
+
 def header(num, title, laptop, runtime, what):
-    return md(f"""# {num}. {title}
+    return md(f"""[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]({COLAB_URL}{{FILE}})
+
+# {num}. {title}
 **Run on:** {laptop} · **Approx. runtime:** {runtime} on a 4-core laptop
 
 {what}
