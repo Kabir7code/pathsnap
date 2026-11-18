@@ -83,6 +83,9 @@ Every script fixes its random seed from `pathsnap/config.py` (`seed = 42`). Step
 
 ## Running the demo (two laptops)
 
+**Step-by-step guide, troubleshooting and the API reference are in [`DEPLOYMENT.md`](DEPLOYMENT.md).** Quick start: on laptop 1 run `start_api.bat` (Windows) or `./start_api.sh`; on laptop 2 run `start_ui.bat <laptop1-ip>` or `./start_ui.sh <laptop1-ip>`. Check laptop 1 first with `python scripts/check_setup.py`.
+
+
 **Laptop 1: API.** Put the 10 evaluator trips in a folder, one sub-folder per trip in the raw format (including `.route`), then run:
 
 ```bash
