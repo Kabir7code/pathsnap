@@ -59,6 +59,16 @@ def health():
     return {"status": "ok", "model": model_meta["model"], "eval_dir": os.path.basename(EVAL_DIR)}
 
 
+@app.get("/info")
+def info():
+    """Model card for the UI: final model config, decoder params and pipeline settings (no labels)."""
+    log.info("GET /info")
+    return {"model": model_meta["model"], "model_params": model_meta["params"],
+            "bayes_trials": model_meta.get("trials"), "hmm_params": hmm_params,
+            "candidate_radius_m": CFG["radius"], "max_candidates": CFG["k"],
+            "eval_dir": os.path.basename(os.path.normpath(EVAL_DIR))}
+
+
 @app.get("/trips")
 def trips():
     out = []
