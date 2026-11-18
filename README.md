@@ -119,15 +119,16 @@ Without the script: `PATHSNAP_EVAL_DIR=/path/to/eval_trips uvicorn app.api.serve
 ./deploy/start_ui.sh <laptop-1-ip>  # Windows: deploy\start_ui.bat <laptop-1-ip>
 ```
 
-Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, then pick a trip. Both laptops must be on the same network, and laptop 1's firewall must allow port 8000.
+Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, choose a model (the tuned, deployed LightGBM by default; all 10 saved models are available) and pick a trip. The **Compare models** tab runs every model live on one trip or on all trips. Both laptops must be on the same network, and laptop 1's firewall must allow port 8000.
 
 ### Endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | model name, status |
+| GET | `/models` | every runnable model with its family, configuration and recorded results |
 | GET | `/trips` | evaluation trip IDs and GPS point counts |
-| POST | `/predict` `{"trip_id": "..."}` | run the pipeline; return GPS points, the predicted route, the classifier-only route, server-side metrics and timings |
+| POST | `/predict` `{"trip_id": "...", "model": "final"}` | run the pipeline with the chosen model (optional, default `final`); return GPS points, the predicted route, the classifier-only route, server-side metrics and timings |
 
 ### How the reference labels are kept separate
 
@@ -152,7 +153,7 @@ Open `http://localhost:8080/?api=http://<laptop-1-ip>:8000`, press **Connect**, 
 | Model evaluation: metrics, plots, confusion matrices | `pathsnap/metrics.py`, `pathsnap/experiment.py`, `scripts/06_plots.py`, `results/02_model_training/`, `results/03_concurrent_training/` |
 | Hyperparameter optimisation: code, search config, results | `scripts/03_bayes_opt.py`, `notebooks/07_*`, `results/04_bayesian_optimisation/` |
 | HMM and Viterbi | `pathsnap/hmm.py`, `pathsnap/pipeline.py`, `scripts/04_hmm_eval.py`, `scripts/09_hmm_top3.py`, `notebooks/08_*`, `results/05_hmm_viterbi/` |
-| API | `app/api/server.py` (endpoints `/health`, `/info`, `/trips`, `/predict`) |
+| API | `app/api/server.py` (endpoints `/health`, `/models`, `/info`, `/trips`, `/predict`) |
 | UI | `app/ui/index.html` (+ `app/ui/vendor/leaflet/`) |
 | Deployment: config, dependencies, instructions | `requirements.txt`, `pathsnap/config.py`, `deploy/`, `docs/DEPLOYMENT.md` |
 | Saved model weights and configuration | `models/*.joblib` (9 models + `final.joblib`), `models/final_model.json`, `models/hmm_params.json` |

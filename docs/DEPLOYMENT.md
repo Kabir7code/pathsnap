@@ -22,7 +22,10 @@ The UI never sees reference routes. It receives only the GPS points, the predict
    ```bash
    cd pathsnap
    ```
-   If you already have it, run `git pull` inside the folder instead.
+   If you already have it, update it inside the folder instead. The history on GitHub was rewritten once, so a plain `git pull` may refuse; this always works (it discards local edits to tracked files, so check `git status` first):
+   ```bash
+   git fetch origin && git reset --hard origin/main
+   ```
 
 2. **Create a Python environment.** You need Python 3.10 or newer.
 
@@ -82,9 +85,9 @@ Both run the check first, then start the server on `0.0.0.0:8000` using `data/st
 
 **Keep this terminal visible during the demo.** Every click on the UI appears here, for example:
 ```
-INFO | POST /predict trip=00000052 : running pipeline
-INFO | trip=00000052 points=262 candidates=1641 predicted_route_arcs=95 time=0.16s
-INFO | trip=00000052 METRICS top1 cls=0.9656 hmm=0.9962 | route F1 cls=0.9073 hmm=0.9894 | continuity hmm=0.9617
+INFO | POST /predict trip=00000052 model=final : running pipeline
+INFO | trip=00000052 model=final points=262 candidates=1641 predicted_route_arcs=95 time=0.16s
+INFO | trip=00000052 model=final METRICS top1 cls=0.9656 hmm=0.9962 | route F1 cls=0.9073 hmm=0.9894 | continuity hmm=0.9617
 INFO:     192.168.x.x:52344 - "POST /predict HTTP/1.1" 200 OK
 ```
 The brief requires you to show these logs to the evaluator. Take a screenshot of them for the report.
@@ -93,16 +96,18 @@ Quick test from laptop 1 itself: open `http://localhost:8000/docs` in a browser.
 
 ## Part 3: Laptop 2 (UI)
 
-1. Get the code (`git clone` or `git pull`). The UI needs only Python, with no packages: it's a static page.
+1. Get the code (`git clone`, or `git fetch origin && git reset --hard origin/main` in an existing copy). The UI needs only Python, with no packages: it's a static page.
 2. Start it:
    - Windows: `deploy\start_ui.bat 192.168.1.23`, using laptop 1's IP. It opens Chrome automatically.
    - macOS/Linux: `./deploy/start_ui.sh 192.168.1.23`, then open the printed URL.
    - Or by hand: `cd app/ui`, then `python -m http.server 8080`, then open `http://localhost:8080/?api=http://<LAPTOP1_IP>:8000`.
-3. In the page: the top bar should show a green **API online** pill. Then either:
-   - click a trip to draw it and see its metrics, or
-   - click **Run all trips**, then open the **All trips** tab for the summary table.
-   - Tabs: **Trip result**, **All trips**, **Model** (settings), **API log** (client-side request log).
-   - Map layers (top right): toggle the **classifier-only route** to show before vs after the HMM. Choose **No basemap (offline)** if there's no internet.
+3. In the page: the top bar should show a green **API online** pill and a **Model** picker. Then:
+   - **Model picker:** the deployed model, *LightGBM (tuned, deployed)*, is selected by default. All 10 saved models (the tuned LightGBM plus the 9 trained models) can be chosen; results are kept per model.
+   - Click a trip to draw it and see its metrics, or click **Run all trips**, then open the **All trips** tab for the summary of the selected model.
+   - **Compare models** tab: *All models on trip …* runs every model on the selected trip; *All models on all trips* runs every model on every trip (10 × 10 = 100 requests, a few minutes; KNN is the slowest). It also shows each model's recorded CV and test results from `results/`. Click a row to switch to that model.
+   - **Model** tab: the selected model's family, hyperparameters and recorded results, plus the shared HMM decoder settings.
+   - **API log** tab: the client-side request log. **Export CSV** saves every model's per-trip metrics.
+   - Map layers (top right): **Streets (CARTO)** is the default basemap. Toggle the **classifier-only route** to show before vs after the HMM. Choose **No basemap (offline)** if there's no internet.
 
 ## Part 4: Demo-day checklist
 - [ ] Both laptops are on the **same network**. College Wi-Fi often blocks laptop-to-laptop traffic, so if it fails, put both on a **phone hotspot**.
@@ -123,6 +128,8 @@ Quick test from laptop 1 itself: open `http://localhost:8000/docs` in a browser.
 | API starts but shows 0 trips | Wrong folder. It must contain one sub-folder per trip: `eval_data/<id>/<id>.track` and so on. |
 | Metrics are blank for a trip | That trip folder has no `.route` file, so the server can't score it. Predictions still show. |
 | Map background is blank | No internet for map tiles. Choose **No basemap (offline)**; routes and points still draw. |
+| Map shows "403 Access blocked" tiles | That is the **OpenStreetMap** layer: its tile servers refuse pages opened from `localhost`. Choose **Streets (CARTO)** or **Light (CARTO)** (the default). |
+| Model picker shows only one model | Laptop 1 runs old code. Update it (`git fetch origin && git reset --hard origin/main`) and restart the API. |
 | A trip takes a few seconds | Normal for long trips (up to about 6 s). The spinner shows while the server computes. |
 
 ## API reference
@@ -130,7 +137,8 @@ Quick test from laptop 1 itself: open `http://localhost:8000/docs` in a browser.
 | Method | Path | Returns |
 |---|---|---|
 | GET | `/health` | `{"status": "ok", "model": "lightgbm", "eval_dir": ...}` |
-| GET | `/info` | Final model settings, HMM parameters, candidate settings |
+| GET | `/models` | Every runnable model: id, name, family, configuration, recorded CV/test results; `default` is `final` |
+| GET | `/info?model=<id>` | That model's settings and recorded results (default `final`), HMM parameters, candidate settings |
 | GET | `/trips` | List of `{trip_id, gps_points}` in the evaluation folder |
-| POST | `/predict` with body `{"trip_id": "00000052"}` | GPS points, predicted route (classifier + HMM), classifier-only route, predicted arc IDs, server-side metrics, timing, decoder stats. An unknown ID returns 404. |
+| POST | `/predict` with body `{"trip_id": "00000052", "model": "rf"}` | GPS points, predicted route (classifier + HMM), classifier-only route, predicted arc IDs, server-side metrics, timing, decoder stats. `model` is optional (default `final`). An unknown trip or model returns 404. |
 | GET | `/docs` | Interactive API documentation (auto-generated by FastAPI) |

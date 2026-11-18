@@ -34,9 +34,13 @@
   .pill.ok { background:var(--good-soft); color:var(--good); } .pill.ok .dot { background:var(--good); }
   .pill.err { background:var(--bad-soft); color:var(--bad); } .pill.err .dot { background:var(--bad); }
   .meta { color:var(--muted); font-size:12px; }
+  select { font:inherit; padding:6px 9px; border:1px solid var(--line); border-radius:7px; background:#fff; max-width:260px; }
+  .modelpick { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  tr.sel td { background:var(--accent-soft); }
+  .note { font-size:12px; color:var(--muted); background:#f6f7f9; border:1px solid var(--line); border-radius:7px; padding:7px 9px; margin:8px 0; }
 
   /* layout */
-  .main { display:grid; grid-template-columns:330px 1fr 360px; min-height:0; }
+  .main { display:grid; grid-template-columns:300px 1fr 440px; min-height:0; }
   .col { background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
   .col.right { border-right:0; border-left:1px solid var(--line); }
   .col h3 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:0; padding:12px 14px 8px; display:flex; justify-content:space-between; align-items:center; }
@@ -114,6 +118,7 @@
     <button id="connect">Connect</button>
   </div>
   <span id="health" class="pill"><span class="dot"></span><span>Not connected</span></span>
+  <label class="modelpick">Model <select id="model" disabled><option>connect first</option></select></label>
   <span id="modelinfo" class="meta"></span>
 </div>
 
@@ -139,12 +144,14 @@
     <div class="tabs">
       <button class="tab on" data-pane="p-trip">Trip result</button>
       <button class="tab" data-pane="p-summary">All trips</button>
+      <button class="tab" data-pane="p-compare">Compare models</button>
       <button class="tab" data-pane="p-model">Model</button>
       <button class="tab" data-pane="p-log">API log</button>
     </div>
     <div class="scroll" style="flex:1">
       <div id="p-trip" class="pane on"><div class="empty">Select a trip to run it through the API.</div></div>
       <div id="p-summary" class="pane"><div class="empty">Run trips to build the summary.</div></div>
+      <div id="p-compare" class="pane"><div class="empty">Connect to compare the models.</div></div>
       <div id="p-model" class="pane"><div class="empty">Connect to see the model card.</div></div>
       <div id="p-log" class="pane"><div id="log"></div></div>
     </div>
@@ -153,8 +160,12 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const results = {};          // trip_id -> response (metrics + timing; routes only for last drawn)
+const results = {};          // model_id -> trip_id -> {metrics, timing, ...}
 let trips = [], current = null, running = false;
+let models = [], modelNote = "", lastDrawn = null;
+const sel = () => $("model").value;
+const R = (m = sel()) => (results[m] = results[m] || {});
+const mname = (id) => (models.find((m) => m.id === id) || { name: id }).name;
 
 // ---------- settings ----------
 const params = new URLSearchParams(location.search);
@@ -165,12 +176,18 @@ const api = () => $("api").value.trim().replace(/\/+$/, "");
 
 // ---------- map ----------
 const map = L.map("map", { preferCanvas: true }).setView([20, 0], 2);
+// CARTO serves pages opened from localhost; tile.openstreetmap.org refuses them (HTTP 403 "Access blocked").
+const osmAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const bases = {
-  "OpenStreetMap": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }),
+  "Streets (CARTO)": L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    { maxZoom: 20, subdomains: "abcd", attribution: osmAttr + ' &copy; <a href="https://carto.com/attributions">CARTO</a>' }),
+  "Light (CARTO)": L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    { maxZoom: 20, subdomains: "abcd", attribution: osmAttr + ' &copy; <a href="https://carto.com/attributions">CARTO</a>' }),
+  "OpenStreetMap": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 19, attribution: osmAttr, referrerPolicy: "strict-origin-when-cross-origin" }),
   "No basemap (offline)": L.layerGroup(),
 };
-bases["OpenStreetMap"].addTo(map);
+bases["Streets (CARTO)"].addTo(map);
 const groups = {
   gps: L.layerGroup().addTo(map),
   cls: L.layerGroup(),
@@ -237,7 +254,17 @@ async function connect() {
   try {
     const h = await call("GET", "/health");
     setHealth("ok", "API online");
-    try { renderModel(await call("GET", "/info")); }
+    try {
+      const ms = await call("GET", "/models");
+      models = ms.models; modelNote = ms.note || "";
+      $("model").innerHTML = models.map((m) => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");
+      $("model").value = ms.default; $("model").disabled = false;
+    } catch (e) {   // older API without /models: deployed model only
+      models = [{ id: "final", name: h.model, family: "", config: "", recorded: {} }];
+      $("model").innerHTML = `<option value="final">${esc(h.model)}</option>`;
+    }
+    renderCompare();
+    try { renderModel(await call("GET", "/info?model=" + encodeURIComponent(sel()))); }
     catch (e) { $("modelinfo").textContent = `model: ${h.model}`; }
     trips = (await call("GET", "/trips")).trips;
     $("tripcount").textContent = `${trips.length}`;
@@ -251,13 +278,21 @@ async function connect() {
 }
 
 function renderModel(info) {
-  $("modelinfo").textContent = `model: ${info.model} · trips from: ${info.eval_dir}`;
+  $("modelinfo").textContent = `trips from: ${info.eval_dir}`;
   const kv = (o) => Object.entries(o).map(([k, v]) =>
     `<div>${esc(k)}</div><div>${esc(typeof v === "number" ? +v.toFixed(4) : v)}</div>`).join("");
+  const rec = info.recorded || {};
   $("p-model").innerHTML = `<div class="section" style="padding-top:12px">
-      <h3 style="padding:0 0 6px">Classifier</h3>
-      <div class="kv"><div>algorithm</div><div>${esc(info.model)}</div>${kv(info.model_params)}
-        <div>Bayesian trials</div><div>${esc(info.bayes_trials ?? "–")}</div></div>
+      <h3 style="padding:0 0 6px">${esc(info.model_name || info.model)}</h3>
+      <div class="kv"><div>family</div><div>${esc(info.family ?? "–")}</div><div>configuration</div><div>${esc(info.config ?? "–")}</div>
+        <div>algorithm</div><div>${esc(info.algorithm || info.model)}</div>
+        ${info.bayes_trials ? `<div>Bayesian trials</div><div>${esc(info.bayes_trials)}</div>` : ""}</div>
+      <h3 style="padding:14px 0 6px">Hyperparameters</h3>
+      <div class="kv">${kv(info.model_params || {})}</div>
+      <h3 style="padding:14px 0 6px">Recorded results (results/)</h3>
+      <div class="kv"><div>CV macro F1 (5-fold, by trip)</div><div>${num(rec.cv_macro_f1, 4)}${rec.cv_macro_f1_std != null ? " ± " + num(rec.cv_macro_f1_std, 4) : ""}</div>
+        <div>student-test Top-1 (pooled)</div><div>${pct(rec.test_top1)}</div><div>student-test macro F1</div><div>${num(rec.test_macro_f1, 4)}</div>
+        <div>student-test log loss</div><div>${num(rec.test_log_loss, 4)}</div><div>student-test continuity</div><div>${pct(rec.test_continuity)}</div></div>
       <h3 style="padding:14px 0 6px">Candidate generation</h3>
       <div class="kv"><div>radius (m)</div><div>${info.candidate_radius_m}</div><div>max candidates</div><div>${info.max_candidates}</div></div>
       <h3 style="padding:14px 0 6px">HMM / Viterbi decoder</h3>
@@ -269,7 +304,7 @@ function renderModel(info) {
 function renderTrips() {
   $("trips").innerHTML = "";
   trips.forEach((t) => {
-    const r = results[t.trip_id];
+    const r = R()[t.trip_id];
     const v = r && r.metrics ? r.metrics.hmm_top1 : null;
     const b = document.createElement("button");
     b.className = "trip" + (current === t.trip_id ? " active" : "");
@@ -283,38 +318,65 @@ function renderTrips() {
 }
 
 // ---------- run ----------
-async function runTrip(id, draw) {
-  current = id; results[id] = results[id] && results[id] !== "running" ? results[id] : "running";
+async function runTrip(id, draw, model = sel()) {
+  const res = R(model);
+  if (draw) current = id;
+  res[id] = res[id] && res[id] !== "running" ? res[id] : "running";
   renderTrips();
-  busy(true, `Running trip ${id} on the API…`);
+  busy(true, `Running trip ${id} with ${mname(model)}…`);
   try {
-    const d = await call("POST", "/predict", { trip_id: id });
-    results[id] = { metrics: d.metrics, timing: d.timing, hmm_stats: d.hmm_stats, n_arcs: d.predicted_route_arc_ids.length, gps_points: d.gps.length };
+    const d = await call("POST", "/predict", { trip_id: id, model });
+    res[id] = { metrics: d.metrics, timing: d.timing, hmm_stats: d.hmm_stats, n_arcs: d.predicted_route_arc_ids.length, gps_points: d.gps.length };
     if (draw) { drawTrip(d); renderTrip(d); showTab("p-trip"); }
     return d;
   } catch (e) {
-    results[id] = undefined;
+    res[id] = undefined;
     if (draw) $("p-trip").innerHTML = `<div class="empty" style="color:var(--bad)">Request failed: ${esc(e.message)}</div>`;
     throw e;
   } finally {
-    busy(false); renderTrips(); renderSummary();
+    busy(false); renderTrips(); renderSummary(); renderCompare();
   }
 }
 
 async function runAll() {
-  running = true; $("runall").disabled = true; renderTrips();
+  lock(true);
   let last = null;
   for (let i = 0; i < trips.length; i++) {
     busy(true, `Running trip ${i + 1} / ${trips.length}…`);
     try { last = await runTrip(trips[i].trip_id, false); } catch (e) { /* logged */ }
   }
-  running = false; $("runall").disabled = false;
+  lock(false);
   if (last) { drawTrip(last); renderTrip(last); }
   renderTrips(); renderSummary(); showTab("p-summary");
 }
 
+function lock(on) {
+  running = on;
+  ["runall", "cmptrip", "cmpall", "model"].forEach((k) => { if ($(k)) $(k).disabled = on; });
+  renderTrips();
+}
+
+// run every model on one trip (the current one) or on every trip
+async function compareModels(allTrips) {
+  const ids = allTrips ? trips.map((t) => t.trip_id) : [current];
+  if (!ids[0]) return;
+  lock(true);
+  let n = 0; const total = ids.length * models.length;
+  for (const m of models) {
+    for (const id of ids) {
+      n++;
+      if (R(m.id)[id] && R(m.id)[id].metrics) continue;          // already run with this model
+      busy(true, `Model ${mname(m.id)} · trip ${id} (${n} / ${total})…`);
+      try { await runTrip(id, false, m.id); } catch (e) { /* logged */ }
+    }
+  }
+  busy(false); lock(false);
+  renderCompare(); showTab("p-compare");
+}
+
 // ---------- drawing ----------
 function drawTrip(d) {
+  lastDrawn = d;
   Object.values(groups).forEach((g) => g.clearLayers());
   const step = Math.max(1, Math.floor(d.gps.length / 4000));
   d.gps.forEach((p, i) => {
@@ -337,7 +399,7 @@ function card(label, cls, hmm) {
 
 function renderTrip(d) {
   const m = d.metrics, t = d.timing;
-  let html = `<div class="section" style="padding-top:12px"><h3 style="padding:0 0 8px">Trip ${esc(d.trip_id)}</h3>`;
+  let html = `<div class="section" style="padding-top:12px"><h3 style="padding:0 0 8px">Trip ${esc(d.trip_id)} · ${esc(d.model_name || mname(d.model))}</h3>`;
   if (m) {
     html += `<div class="cards">
         ${card("Point Top-1 (HMM)", m.cls_top1, m.hmm_top1)}
@@ -371,20 +433,21 @@ function renderTrip(d) {
 }
 
 function renderSummary() {
-  const done = trips.filter((t) => results[t.trip_id] && results[t.trip_id].metrics);
-  $("export").disabled = done.length === 0;
-  if (!done.length) return;
+  const res = R();
+  const done = trips.filter((t) => res[t.trip_id] && res[t.trip_id].metrics);
+  $("export").disabled = !Object.values(results).some((r) => Object.values(r).some((x) => x && x.metrics));
+  if (!done.length) { $("p-summary").innerHTML = `<div class="empty">No trips run yet with ${esc(mname(sel()))}. Press <b>Run all trips</b>.</div>`; return; }
   const keys = ["cls_top1", "hmm_top1", "cls_route_f1", "hmm_route_f1", "hmm_continuity"];
-  const mean = (k) => done.reduce((s, t) => s + results[t.trip_id].metrics[k], 0) / done.length;
-  const meanT = done.reduce((s, t) => s + results[t.trip_id].timing.total_s, 0) / done.length;
+  const mean = (k) => done.reduce((s, t) => s + res[t.trip_id].metrics[k], 0) / done.length;
+  const meanT = done.reduce((s, t) => s + res[t.trip_id].timing.total_s, 0) / done.length;
   let html = `<div class="section" style="padding-top:12px">
-    <h3 style="padding:0 0 8px">${done.length} of ${trips.length} trips evaluated</h3>
+    <h3 style="padding:0 0 8px">${esc(mname(sel()))}: ${done.length} of ${trips.length} trips evaluated</h3>
     <div class="cards">${card("Mean point Top-1 (HMM)", mean("cls_top1"), mean("hmm_top1"))}${card("Mean route F1 (HMM)", mean("cls_route_f1"), mean("hmm_route_f1"))}</div>
     <table style="margin-top:12px"><tr><th>Trip</th><th>Top-1<br>cls</th><th>Top-1<br>HMM</th><th>Route F1<br>HMM</th><th>Cont.<br>HMM</th><th>Time s</th></tr>`;
   done.forEach((t) => {
-    const m = results[t.trip_id].metrics;
+    const m = res[t.trip_id].metrics;
     html += `<tr class="clickable" data-trip="${esc(t.trip_id)}"><td>${esc(t.trip_id)}</td><td>${pct(m.cls_top1)}</td><td><b>${pct(m.hmm_top1)}</b></td>
-      <td>${pct(m.hmm_route_f1)}</td><td>${pct(m.hmm_continuity)}</td><td>${num(results[t.trip_id].timing.total_s, 2)}</td></tr>`;
+      <td>${pct(m.hmm_route_f1)}</td><td>${pct(m.hmm_continuity)}</td><td>${num(res[t.trip_id].timing.total_s, 2)}</td></tr>`;
   });
   html += `<tfoot><tr><td>Mean</td>${keys.slice(0, 2).map((k) => `<td>${pct(mean(k))}</td>`).join("")}
     <td>${pct(mean("hmm_route_f1"))}</td><td>${pct(mean("hmm_continuity"))}</td><td>${num(meanT, 2)}</td></tr></tfoot></table>
@@ -393,14 +456,63 @@ function renderSummary() {
   $("p-summary").querySelectorAll("tr.clickable").forEach((tr) => (tr.onclick = () => runTrip(tr.dataset.trip, true)));
 }
 
+function renderCompare() {
+  if (!models.length) return;
+  const cur = current, all = trips.length;
+  const live = models.map((m) => {
+    const res = R(m.id), done = trips.filter((t) => res[t.trip_id] && res[t.trip_id].metrics);
+    const mean = (k) => done.length ? done.reduce((s, t) => s + res[t.trip_id].metrics[k], 0) / done.length : null;
+    const one = cur && res[cur] && res[cur].metrics ? res[cur] : null;
+    return { m, n: done.length, cls: mean("cls_top1"), hmm: mean("hmm_top1"), f1: mean("hmm_route_f1"),
+             t: done.length ? done.reduce((s, t) => s + res[t.trip_id].timing.total_s, 0) / done.length : null, one };
+  });
+  let html = `<div class="section" style="padding-top:12px">
+    <h3 style="padding:0 0 6px">Run every model live</h3>
+    <div class="actions" style="padding:0 0 6px">
+      <button id="cmptrip" ${!cur || running ? "disabled" : ""}>All models on ${cur ? "trip " + esc(cur) : "the selected trip"}</button>
+      <button id="cmpall" class="primary" ${!all || running ? "disabled" : ""}>All models on all ${all} trips</button>
+    </div>
+    <div class="note">Each run goes through the API: same candidates, features and HMM decoder for every model; only the classifier changes. The full run makes ${models.length * all} requests (KNN is the slowest).</div>`;
+  if (cur && live.some((x) => x.one)) {
+    html += `<h3 style="padding:8px 0 6px">Trip ${esc(cur)}: live</h3><table><tr><th>Model</th><th>Top-1<br>cls</th><th>Top-1<br>HMM</th><th>Route F1<br>HMM</th><th>Time s</th></tr>` +
+      live.filter((x) => x.one).sort((a, b) => b.one.metrics.hmm_top1 - a.one.metrics.hmm_top1).map((x) =>
+        `<tr class="clickable${x.m.id === sel() ? " sel" : ""}" data-model="${esc(x.m.id)}"><td>${esc(x.m.name)}</td><td>${pct(x.one.metrics.cls_top1)}</td><td><b>${pct(x.one.metrics.hmm_top1)}</b></td><td>${pct(x.one.metrics.hmm_route_f1)}</td><td>${num(x.one.timing.total_s, 2)}</td></tr>`).join("") +
+      `</table><p class="meta">Click a model to draw its route for this trip.</p>`;
+  }
+  if (live.some((x) => x.n)) {
+    html += `<h3 style="padding:8px 0 6px">Mean over the trips run: live</h3><table><tr><th>Model</th><th>Trips</th><th>Top-1<br>cls</th><th>Top-1<br>HMM</th><th>Route F1<br>HMM</th><th>Time s</th></tr>` +
+      live.filter((x) => x.n).sort((a, b) => b.hmm - a.hmm).map((x) =>
+        `<tr class="clickable${x.m.id === sel() ? " sel" : ""}" data-pick="${esc(x.m.id)}"><td>${esc(x.m.name)}</td><td>${x.n}/${all}</td><td>${pct(x.cls)}</td><td><b>${pct(x.hmm)}</b></td><td>${pct(x.f1)}</td><td>${num(x.t, 2)}</td></tr>`).join("") +
+      `</table><p class="meta">Means are per trip. Compare models over the same number of trips.</p>`;
+  }
+  html += `<h3 style="padding:12px 0 6px">Recorded during training (results/)</h3>
+    <table><tr><th>Model</th><th>Family</th><th>CV macro F1</th><th>Test Top-1</th><th>Test log loss</th></tr>` +
+    models.map((m) => `<tr class="clickable${m.id === sel() ? " sel" : ""}" data-pick="${esc(m.id)}"><td>${esc(m.name)}</td><td>${esc(m.family)}</td>
+      <td>${num(m.recorded.cv_macro_f1, 4)}</td><td>${pct(m.recorded.test_top1)}</td><td>${num(m.recorded.test_log_loss, 4)}</td></tr>`).join("") +
+    `</table><p class="meta">Recorded values are classifier-only: CV = 5-fold GroupKFold by trip on train; test = all points of the 10 student-test trips pooled. ${esc(modelNote)}</p></div>`;
+  $("p-compare").innerHTML = html;
+  if ($("cmptrip")) $("cmptrip").onclick = () => compareModels(false);
+  if ($("cmpall")) $("cmpall").onclick = () => compareModels(true);
+  $("p-compare").querySelectorAll("tr[data-pick]").forEach((tr) => (tr.onclick = () => { if (!running) pickModel(tr.dataset.pick); }));
+  $("p-compare").querySelectorAll("tr[data-model]").forEach((tr) => (tr.onclick = () => {
+    if (running) return; pickModel(tr.dataset.model); runTrip(cur, true);
+  }));
+}
+
+async function pickModel(id) {
+  $("model").value = id;
+  renderTrips(); renderSummary(); renderCompare();
+  try { renderModel(await call("GET", "/info?model=" + encodeURIComponent(id))); } catch (e) { /* logged */ }
+}
+
 function exportCSV() {
   const cols = ["cls_top1", "hmm_top1", "cls_route_precision", "hmm_route_precision", "cls_route_recall", "hmm_route_recall",
                 "cls_route_f1", "hmm_route_f1", "cls_continuity", "hmm_continuity", "points", "labelled"];
-  const rows = [["trip_id", ...cols, "total_s"].join(",")];
-  trips.forEach((t) => {
-    const r = results[t.trip_id];
-    if (r && r.metrics) rows.push([t.trip_id, ...cols.map((c) => r.metrics[c]), r.timing.total_s].join(","));
-  });
+  const rows = [["model", "trip_id", ...cols, "total_s"].join(",")];
+  Object.keys(results).forEach((mid) => trips.forEach((t) => {
+    const r = results[mid][t.trip_id];
+    if (r && r.metrics) rows.push([mid, t.trip_id, ...cols.map((c) => r.metrics[c]), r.timing.total_s].join(","));
+  }));
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv" }));
   a.download = "pathsnap_results.csv";
@@ -411,6 +523,12 @@ $("connect").onclick = connect;
 $("api").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
 $("runall").onclick = runAll;
 $("export").onclick = exportCSV;
+$("model").onchange = async () => {
+  await pickModel(sel());
+  if (current) {        // redraw the open trip with the newly chosen model
+    try { await runTrip(current, true); } catch (e) { /* shown */ }
+  }
+};
 connect();
 </script>
 </body>
